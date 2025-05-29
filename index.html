@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Advanced Timer Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Add Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <style>
         :root {
             --primary-color: #4a6bff;
@@ -405,22 +402,6 @@
         .link-invalid {
             color: #FF5722;
         }
-
-        /* Loading spinner */
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-radius: 50%;
-            border-top: 4px solid var(--primary-color);
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 20px auto;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body>
@@ -431,8 +412,6 @@
                 <i class="fas fa-cog"></i>
             </button>
         </div>
-        
-        <div id="loadingSpinner" class="spinner" style="display: none;"></div>
         
         <div class="timers-container" id="timersContainer">
             <!-- Timers will be added here dynamically -->
@@ -520,20 +499,25 @@
             </div>
         </div>
 
+        <!-- Firebase SDK -->
+        <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+
         <script>
-            // Firebase Configuration
+            // Firebase configuration
             const firebaseConfig = {
                 apiKey: "AIzaSyAyTnBv1UMO1lp_neYf_4mdVgoJoztRr4o",
                 authDomain: "checkin24only.firebaseapp.com",
+                databaseURL: "https://checkin24only-default-rtdb.asia-southeast1.firebasedatabase.app",
                 projectId: "checkin24only",
-                storageBucket: "checkin24only.appspot.com",
+                storageBucket: "checkin24only.firebasestorage.app",
                 messagingSenderId: "286883202113",
                 appId: "1:286883202113:web:87fe227068ab075972f2c0"
             };
 
             // Initialize Firebase
-            firebase.initializeApp(firebaseConfig);
-            const db = firebase.firestore();
+            const app = firebase.initializeApp(firebaseConfig);
+            const database = firebase.database();
 
             // DOM Elements
             const timersContainer = document.getElementById('timersContainer');
@@ -562,88 +546,104 @@
             const minutesInput = document.getElementById('minutesInput');
             const secondsInput = document.getElementById('secondsInput');
             
-            const loadingSpinner = document.getElementById('loadingSpinner');
-            
             // App State
             let timers = [];
             let currentEditTimerId = null;
             let currentTheme = '#4a6bff';
             let darkMode = false;
-            let unsubscribeTimers = null;
-            let countdownIntervals = {};
-
+            
             // Initialize the app
             function init() {
-                showLoading(true);
+                // Load settings from Firebase
+                loadSettings();
                 
-                // Load settings from localStorage
-                loadLocalSettings();
-                
-                // Subscribe to timers
-                subscribeToTimers();
+                // Load timers from Firebase
+                loadTimers();
                 
                 // Validate URL input in real-time
                 subtitleInput.addEventListener('input', validateUrl);
                 
                 // Preview background image
                 bgImageInput.addEventListener('input', updateBgPreview);
-                
-                showLoading(false);
             }
             
-            // Show loading spinner
-            function showLoading(show) {
-                loadingSpinner.style.display = show ? 'block' : 'none';
+            // Load settings from Firebase
+            function loadSettings() {
+                database.ref('settings').once('value').then((snapshot) => {
+                    const settings = snapshot.val() || {};
+                    
+                    // Apply theme
+                    currentTheme = settings.themeColor || '#4a6bff';
+                    applyTheme(currentTheme);
+                    
+                    // Set theme in select
+                    if (settings.themeColor) {
+                        const option = Array.from(themeColorSelect.options).find(opt => opt.value === settings.themeColor);
+                        if (option) option.selected = true;
+                    }
+                    
+                    // Apply dark mode
+                    darkMode = settings.darkMode || false;
+                    setDarkMode(darkMode);
+                    darkModeSelect.value = darkMode ? 'dark' : 'light';
+                });
             }
             
-            // Subscribe to timers collection
-            function subscribeToTimers() {
-                if (unsubscribeTimers) {
-                    unsubscribeTimers();
-                }
+            // Save settings to Firebase
+            function saveSettingsToFirebase() {
+                const settings = {
+                    themeColor: themeColorSelect.value,
+                    darkMode: darkModeSelect.value === 'dark'
+                };
                 
-                unsubscribeTimers = db.collection('timers')
-                    .orderBy('createdAt', 'desc')
-                    .onSnapshot(snapshot => {
-                        timers = [];
-                        snapshot.forEach(doc => {
-                            const timer = doc.data();
-                            timer.id = doc.id;
-                            timers.push(timer);
-                        });
-                        renderTimers();
-                    }, error => {
-                        console.error('Error getting timers:', error);
+                database.ref('settings').set(settings)
+                    .then(() => {
+                        console.log('Settings saved successfully');
+                        applyTheme(settings.themeColor);
+                        setDarkMode(settings.darkMode);
+                    })
+                    .catch((error) => {
+                        console.error('Error saving settings:', error);
                     });
             }
             
-            // Load settings from localStorage
-            function loadLocalSettings() {
-                const savedTheme = localStorage.getItem('themeColor');
-                const savedDarkMode = localStorage.getItem('darkMode');
-                
-                if (savedTheme) {
-                    currentTheme = savedTheme;
-                    applyTheme(currentTheme);
+            // Load timers from Firebase
+            function loadTimers() {
+                database.ref('timers').on('value', (snapshot) => {
+                    const timersData = snapshot.val() || {};
                     
-                    // Update select input
-                    const themeOption = Array.from(themeColorSelect.options).find(opt => opt.value === currentTheme);
-                    if (themeOption) themeOption.selected = true;
-                }
-                
-                if (savedDarkMode) {
-                    darkMode = savedDarkMode === 'true';
-                    setDarkMode(darkMode);
+                    // Convert object to array
+                    timers = Object.keys(timersData).map(key => {
+                        return {
+                            id: key,
+                            ...timersData[key]
+                        };
+                    });
                     
-                    // Update select input
-                    darkModeSelect.value = darkMode ? 'dark' : 'light';
+                    renderTimers();
+                });
+            }
+            
+            // Save timer to Firebase
+            function saveTimerToFirebase(timer) {
+                if (currentEditTimerId) {
+                    // Update existing timer
+                    const updates = {};
+                    updates[`/timers/${timer.id}`] = timer;
+                    
+                    return database.ref().update(updates);
+                } else {
+                    // Add new timer
+                    const newTimerRef = database.ref('timers').push();
+                    timer.id = newTimerRef.key;
+                    
+                    return newTimerRef.set(timer);
                 }
             }
             
-            // Save settings to localStorage
-            function saveLocalSettings() {
-                localStorage.setItem('themeColor', currentTheme);
-                localStorage.setItem('darkMode', darkMode);
+            // Delete timer from Firebase
+            function deleteTimerFromFirebase(timerId) {
+                return database.ref(`timers/${timerId}`).remove();
             }
             
             // Toggle dark mode
@@ -654,7 +654,6 @@
                     document.body.classList.remove('dark-mode');
                 }
                 darkMode = enabled;
-                saveLocalSettings();
             }
             
             // Update background preview
@@ -691,9 +690,6 @@
             
             // Render all timers with started timers at the bottom
             function renderTimers() {
-                // Clear any existing countdown intervals
-                clearAllCountdowns();
-                
                 timersContainer.innerHTML = '';
                 
                 // Separate running and non-running timers
@@ -716,14 +712,6 @@
                 timersContainer.appendChild(addTimerBtn);
             }
             
-            // Clear all countdown intervals
-            function clearAllCountdowns() {
-                Object.values(countdownIntervals).forEach(interval => {
-                    clearInterval(interval);
-                });
-                countdownIntervals = {};
-            }
-            
             // Create a timer card element
             function createTimerElement(timer) {
                 const timerElement = document.createElement('div');
@@ -732,19 +720,13 @@
                 
                 // Calculate remaining time
                 let remainingTime = timer.duration;
-                let isRunning = timer.isRunning;
-                
                 if (timer.isRunning) {
                     const elapsed = Date.now() - timer.startTime;
                     remainingTime = Math.max(timer.duration - elapsed, 0);
                     
                     if (remainingTime <= 0) {
-                        isRunning = false;
-                        // Update the timer in Firestore to mark it as completed
-                        db.collection('timers').doc(timer.id).update({
-                            isRunning: false,
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        });
+                        timer.isRunning = false;
+                        saveTimerToFirebase(timer);
                     }
                 }
                 
@@ -779,8 +761,8 @@
                     <div class="timer-display">
                         <div class="timer">${formatTime(hours, minutes, seconds)}</div>
                         <div class="timer-controls">
-                            <button class="start-btn" ${isRunning ? 'disabled' : ''}>Start</button>
-                            <button class="reset-btn" ${!isRunning ? 'disabled' : ''}>Reset</button>
+                            <button class="start-btn" ${timer.isRunning ? 'disabled' : ''}>Start</button>
+                            <button class="reset-btn" ${!timer.isRunning ? 'disabled' : ''}>Reset</button>
                         </div>
                     </div>
                 `;
@@ -801,9 +783,9 @@
                 deleteBtn.addEventListener('click', () => deleteTimer(timer.id));
                 
                 // If timer is running, start the countdown
-                if (isRunning) {
+                if (timer.isRunning) {
                     const timerDisplay = timerElement.querySelector('.timer');
-                    startCountdown(timerDisplay, timer.id, timer.duration, timer.startTime);
+                    startCountdown(timerDisplay, timer.duration, timer.startTime);
                 }
                 
                 return timerElement;
@@ -816,66 +798,37 @@
                 
                 timer.isRunning = true;
                 timer.startTime = Date.now();
-                updateTimerInFirestore(timer);
+                saveTimerToFirebase(timer);
             }
             
             function resetTimer(timerId) {
                 const timer = timers.find(t => t.id === timerId);
                 if (!timer || !timer.isRunning) return;
                 
-                // Clear the countdown for this timer
-                if (countdownIntervals[timerId]) {
-                    clearInterval(countdownIntervals[timerId]);
-                    delete countdownIntervals[timerId];
-                }
-                
                 timer.isRunning = false;
-                updateTimerInFirestore(timer);
+                saveTimerToFirebase(timer);
                 
                 renderTimers();
             }
             
-            function startCountdown(timerDisplay, timerId, duration, startTime) {
+            function startCountdown(timerDisplay, duration, startTime) {
                 const endTime = startTime + duration;
-                
-                // Clear any existing interval for this timer
-                if (countdownIntervals[timerId]) {
-                    clearInterval(countdownIntervals[timerId]);
-                }
                 
                 function update() {
                     const remaining = endTime - Date.now();
                     
                     if (remaining <= 0) {
                         timerDisplay.textContent = '00:00:00';
-                        // Clear the interval when timer completes
-                        if (countdownIntervals[timerId]) {
-                            clearInterval(countdownIntervals[timerId]);
-                            delete countdownIntervals[timerId];
-                        }
                         return;
                     }
                     
                     const { hours, minutes, seconds } = msToTime(remaining);
                     timerDisplay.textContent = formatTime(hours, minutes, seconds);
+                    
+                    requestAnimationFrame(update);
                 }
                 
-                // Update immediately and then every second
                 update();
-                countdownIntervals[timerId] = setInterval(update, 1000);
-            }
-            
-            // Update timer in Firestore
-            function updateTimerInFirestore(timer) {
-                const timerData = {
-                    ...timer,
-                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                };
-                
-                db.collection('timers').doc(timer.id).update(timerData)
-                    .catch(error => {
-                        console.error('Error updating timer:', error);
-                    });
             }
             
             // Modal functions
@@ -949,69 +902,56 @@
                 
                 const duration = (hours * 3600 + minutes * 60 + seconds) * 1000;
                 
+                const timerData = {
+                    tag,
+                    title,
+                    link: link || '',
+                    bgImage: bgImage || '',
+                    duration,
+                    color: currentTheme
+                };
+                
                 if (currentEditTimerId) {
                     // Update existing timer
-                    const timerIndex = timers.findIndex(t => t.id === currentEditTimerId);
-                    if (timerIndex !== -1) {
-                        const updatedTimer = {
-                            ...timers[timerIndex],
-                            tag,
-                            title,
-                            link: link || '',
-                            bgImage: bgImage || '',
-                            duration,
-                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                        };
-                        
-                        db.collection('timers').doc(currentEditTimerId).update(updatedTimer)
-                            .then(() => {
-                                closeTimerModal.click();
-                            })
-                            .catch(error => {
-                                console.error('Error updating timer:', error);
-                                alert('Error updating timer: ' + error.message);
-                            });
+                    const timer = timers.find(t => t.id === currentEditTimerId);
+                    if (timer) {
+                        timerData.isRunning = timer.isRunning;
+                        timerData.startTime = timer.startTime;
                     }
+                    
+                    saveTimerToFirebase({
+                        id: currentEditTimerId,
+                        ...timerData
+                    }).then(() => {
+                        closeTimerModal.click();
+                    }).catch(error => {
+                        console.error('Error saving timer:', error);
+                        alert('Failed to save timer. Please try again.');
+                    });
                 } else {
                     // Add new timer
-                    const newTimer = {
-                        tag,
-                        title,
-                        link: link || '',
-                        bgImage: bgImage || '',
-                        duration,
-                        isRunning: false,
-                        color: currentTheme,
-                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-                    };
+                    timerData.isRunning = false;
                     
-                    db.collection('timers').add(newTimer)
+                    saveTimerToFirebase(timerData)
                         .then(() => {
                             closeTimerModal.click();
                         })
                         .catch(error => {
-                            console.error('Error adding timer:', error);
-                            alert('Error adding timer: ' + error.message);
+                            console.error('Error saving timer:', error);
+                            alert('Failed to save timer. Please try again.');
                         });
                 }
             }
             
             function deleteTimer(timerId) {
                 if (confirm('Are you sure you want to delete this timer?')) {
-                    // Clear the countdown for this timer if it exists
-                    if (countdownIntervals[timerId]) {
-                        clearInterval(countdownIntervals[timerId]);
-                        delete countdownIntervals[timerId];
-                    }
-                    
-                    db.collection('timers').doc(timerId).delete()
+                    deleteTimerFromFirebase(timerId)
                         .then(() => {
                             closeTimerModal.click();
                         })
                         .catch(error => {
                             console.error('Error deleting timer:', error);
-                            alert('Error deleting timer: ' + error.message);
+                            alert('Failed to delete timer. Please try again.');
                         });
                 }
             }
@@ -1032,7 +972,6 @@
             function applyTheme(color) {
                 document.documentElement.style.setProperty('--primary-color', color);
                 currentTheme = color;
-                saveLocalSettings();
             }
             
             // Event Listeners
@@ -1051,8 +990,7 @@
             });
             
             saveSettingsBtn.addEventListener('click', () => {
-                applyTheme(themeColorSelect.value);
-                setDarkMode(darkModeSelect.value === 'dark');
+                saveSettingsToFirebase();
                 settingsModal.style.display = 'none';
             });
             
