@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Timer Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Add Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <style>
+        :root {
+            --primary-color: #4a6bff;
+            --secondary-color: #f8f9fa;
+            --text-color: #333;
+            --light-text: #777;
+            --border-color: #e0e0e0;
+            --card-bg: #ffffff;
+            --desktop-width: 1200px;
+            --body-bg: #f5f7ff;
+            --header-bg: transparent;
+            --modal-bg: #ffffff;
+            --modal-text: #333;
+            --input-bg: #ffffff;
+            --input-text: #333;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background-color: var(--body-bg);
+            margin: 0;
+            padding: 20px;
+            color: var(--text-color);
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        body.dark-mode {
+            --primary-color: #5d7eff;
+            --secondary-color: #161616;
+            --text-color: #f8f9fa;
+            --light-text: #a0aec0;
+            --border-color: #4a5568;
+            --card-bg: #161616;
+            --body-bg: #111111;
+            --header-bg: #111111;
+            --modal-bg: #161616;
+            --modal-text: #f8f9fa;
+            --input-bg: #4a5568;
+            --input-text: #f8f9fa;
+        }
+        
+        .app-container {
+            max-width: var(--desktop-width);
+            margin: 0 auto;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            background-color: var(--header-bg);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .app-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .settings-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: var(--primary-color);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+        
+        .settings-btn:hover {
+            background-color: rgba(74, 107, 255, 0.1);
+            transform: rotate(30deg);
+        }
+        
+        .timers-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .timer-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .timer-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+        }
+        
+        .timer-header {
+            color: white;
+            padding: 15px;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        
+        .timer-header-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+        
+        .timer-header-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .timer-tag {
+            display: inline-block;
+            background-color: rgba(255, 255, 255, 0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        
+        .timer-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin: 5px 0;
+        }
+        
+        .timer-title a {
+            color: white;
+            text-decoration: underline;
+            transition: all 0.2s ease;
+        }
+        
+        .timer-title a:hover {
+            opacity: 0.8;
+        }
+        
+        .timer-actions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 5px;
+            z-index: 2;
+        }
+        
+        .timer-action-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .timer-action-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .timer-display {
+            padding: 20px;
+            text-align: center;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        
+        .timer {
+            font-size: 32px;
+            font-family: 'Dancing Script', cursive;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin: 15px 0;
+            letter-spacing: 2px;
+        }
+        
+        .timer-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .add-timer-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(74, 107, 255, 0.1);
+            color: var(--primary-color);
+            border: 2px dashed var(--primary-color);
+            min-height: 150px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .add-timer-btn:hover {
+            background-color: rgba(74, 107, 255, 0.2);
+            transform: scale(1.02);
+        }
+        
+        .add-timer-btn i {
+            margin-right: 8px;
+        }
+        
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background-color: var(--modal-bg);
+            color: var(--modal-text);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            animation: modalFadeIn 0.3s ease;
+        }
+        
+        @keyframes modalFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--light-text);
+            transition: all 0.2s ease;
+        }
+        
+        .close-modal:hover {
+            color: var(--primary-color);
+            transform: rotate(90deg);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: inherit;
+            background-color: var(--input-bg);
+            color: var(--input-text);
+        }
+        
+        .time-inputs {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .time-inputs input {
+            text-align: center;
+            flex: 1;
+        }
+        
+        .time-inputs span {
+            font-weight: bold;
+        }
+        
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .delete-btn {
+            background-color: #ff4a4a;
+        }
+        
+        /* Preview for background image */
+        .bg-preview {
+            width: 100%;
+            height: 100px;
+            background-size: cover;
+            background-position: center;
+            margin-top: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+        
+        /* Desktop specific styles */
+        @media (min-width: 1024px) {
+            .timers-container {
+                grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            }
+            
+            .timer-card {
+                min-height: 250px;
+            }
+            
+            .timer {
+                font-size: 36px;
+            }
+            
+            .timer-title {
+                font-size: 20px;
+            }
+        }
+        
+        /* Link validation indicator */
+        .link-valid {
+            color: #4CAF50;
+        }
+        
+        .link-invalid {
+            color: #FF5722;
+        }
+
+        /* Loading spinner */
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary-color);
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1 class="app-title">Advanced Timer Dashboard</h1>
+            <button class="settings-btn" id="settingsBtn">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+        
+        <div id="loadingSpinner" class="spinner" style="display: none;"></div>
+        
+        <div class="timers-container" id="timersContainer">
+            <!-- Timers will be added here dynamically -->
+            
+            <div class="timer-card add-timer-btn" id="addTimerBtn">
+                <i class="fas fa-plus"></i> Add New Timer
+            </div>
+        </div>
+        
+        <!-- Settings Modal -->
+        <div class="modal" id="settingsModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title">Application Settings</h2>
+                    <button class="close-modal" id="closeSettingsModal">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label>Theme Color</label>
+                    <select id="themeColorSelect">
+                        <option value="#4a6bff">Blue</option>
+                        <option value="#ff6b4a">Orange</option>
+                        <option value="#6b4aff">Purple</option>
+                        <option value="#4aff6b">Green</option>
+                        <option value="#ff4a6b">Pink</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Dark Mode</label>
+                    <select id="darkModeSelect">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button id="saveSettings">Save Settings</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Timer Edit/Create Modal -->
+        <div class="modal" id="timerModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="timerModalTitle">Add New Timer</h2>
+                    <button class="close-modal" id="closeTimerModal">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label for="tagInput">Tag</label>
+                    <input type="text" id="tagInput" placeholder="e.g. DAILY ENTRY, XP, etc">
+                </div>
+                
+                <div class="form-group">
+                    <label for="titleInput">Title</label>
+                    <input type="text" id="titleInput" placeholder="Timer title (can include link)">
+                </div>
+                
+                <div class="form-group">
+                    <label for="subtitleInput">Link URL</label>
+                    <input type="text" id="subtitleInput" placeholder="https://example.com">
+                    <small id="linkValidation" class="link-invalid">Please enter a valid URL (starting with http:// or https://)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="bgImageInput">Background Image URL</label>
+                    <input type="text" id="bgImageInput" placeholder="https://example.com/image.jpg">
+                    <div class="bg-preview" id="bgPreview"></div>
+                    <small>Leave empty for default color</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Timer Duration</label>
+                    <div class="time-inputs">
+                        <input type="number" id="hoursInput" min="0" max="99" value="24" placeholder="HH">
+                        <span>:</span>
+                        <input type="number" id="minutesInput" min="0" max="59" value="0" placeholder="MM">
+                        <span>:</span>
+                        <input type="number" id="secondsInput" min="0" max="59" value="0" placeholder="SS">
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button class="delete-btn" id="deleteTimerBtn" style="display: none;">Delete Timer</button>
+                    <button id="saveTimerBtn">Save Timer</button>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            // Firebase Configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyAyTnBv1UMO1lp_neYf_4mdVgoJoztRr4o",
+                authDomain: "checkin24only.firebaseapp.com",
+                projectId: "checkin24only",
+                storageBucket: "checkin24only.appspot.com",
+                messagingSenderId: "286883202113",
+                appId: "1:286883202113:web:87fe227068ab075972f2c0"
+            };
+
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.firestore();
+
+            // DOM Elements
+            const timersContainer = document.getElementById('timersContainer');
+            const addTimerBtn = document.getElementById('addTimerBtn');
+            const settingsBtn = document.getElementById('settingsBtn');
+            const closeSettingsModal = document.getElementById('closeSettingsModal');
+            const settingsModal = document.getElementById('settingsModal');
+            const saveSettingsBtn = document.getElementById('saveSettings');
+            const themeColorSelect = document.getElementById('themeColorSelect');
+            const darkModeSelect = document.getElementById('darkModeSelect');
+            
+            const timerModal = document.getElementById('timerModal');
+            const closeTimerModal = document.getElementById('closeTimerModal');
+            const timerModalTitle = document.getElementById('timerModalTitle');
+            const saveTimerBtn = document.getElementById('saveTimerBtn');
+            const deleteTimerBtn = document.getElementById('deleteTimerBtn');
+            const linkValidation = document.getElementById('linkValidation');
+            const bgImageInput = document.getElementById('bgImageInput');
+            const bgPreview = document.getElementById('bgPreview');
+            
+            // Timer form elements
+            const tagInput = document.getElementById('tagInput');
+            const titleInput = document.getElementById('titleInput');
+            const subtitleInput = document.getElementById('subtitleInput');
+            const hoursInput = document.getElementById('hoursInput');
+            const minutesInput = document.getElementById('minutesInput');
+            const secondsInput = document.getElementById('secondsInput');
+            
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            // App State
+            let timers = [];
+            let currentEditTimerId = null;
+            let currentTheme = '#4a6bff';
+            let darkMode = false;
+            let unsubscribeTimers = null;
+
+            // Initialize the app
+            function init() {
+                showLoading(true);
+                
+                // Load settings from localStorage
+                loadLocalSettings();
+                
+                // Subscribe to timers
+                subscribeToTimers();
+                
+                // Validate URL input in real-time
+                subtitleInput.addEventListener('input', validateUrl);
+                
+                // Preview background image
+                bgImageInput.addEventListener('input', updateBgPreview);
+                
+                showLoading(false);
+            }
+            
+            // Show loading spinner
+            function showLoading(show) {
+                loadingSpinner.style.display = show ? 'block' : 'none';
+            }
+            
+            // Subscribe to timers collection
+            function subscribeToTimers() {
+                if (unsubscribeTimers) {
+                    unsubscribeTimers();
+                }
+                
+                unsubscribeTimers = db.collection('timers')
+                    .orderBy('createdAt', 'desc')
+                    .onSnapshot(snapshot => {
+                        timers = [];
+                        snapshot.forEach(doc => {
+                            const timer = doc.data();
+                            timer.id = doc.id;
+                            timers.push(timer);
+                        });
+                        renderTimers();
+                    }, error => {
+                        console.error('Error getting timers:', error);
+                    });
+            }
+            
+            // Load settings from localStorage
+            function loadLocalSettings() {
+                const savedTheme = localStorage.getItem('themeColor');
+                const savedDarkMode = localStorage.getItem('darkMode');
+                
+                if (savedTheme) {
+                    currentTheme = savedTheme;
+                    applyTheme(currentTheme);
+                    
+                    // Update select input
+                    const themeOption = Array.from(themeColorSelect.options).find(opt => opt.value === currentTheme);
+                    if (themeOption) themeOption.selected = true;
+                }
+                
+                if (savedDarkMode) {
+                    darkMode = savedDarkMode === 'true';
+                    setDarkMode(darkMode);
+                    
+                    // Update select input
+                    darkModeSelect.value = darkMode ? 'dark' : 'light';
+                }
+            }
+            
+            // Save settings to localStorage
+            function saveLocalSettings() {
+                localStorage.setItem('themeColor', currentTheme);
+                localStorage.setItem('darkMode', darkMode);
+            }
+            
+            // Toggle dark mode
+            function setDarkMode(enabled) {
+                if (enabled) {
+                    document.body.classList.add('dark-mode');
+                } else {
+                    document.body.classList.remove('dark-mode');
+                }
+                darkMode = enabled;
+                saveLocalSettings();
+            }
+            
+            // Update background preview
+            function updateBgPreview() {
+                const url = bgImageInput.value.trim();
+                if (url) {
+                    bgPreview.style.backgroundImage = `url('${url}')`;
+                } else {
+                    bgPreview.style.backgroundImage = 'none';
+                    bgPreview.style.backgroundColor = currentTheme;
+                }
+            }
+            
+            // Validate URL format
+            function validateUrl() {
+                const url = subtitleInput.value.trim();
+                if (!url) {
+                    linkValidation.textContent = 'Leave empty for no link';
+                    linkValidation.className = 'link-valid';
+                    return false;
+                }
+                
+                try {
+                    new URL(url);
+                    linkValidation.textContent = 'Valid URL';
+                    linkValidation.className = 'link-valid';
+                    return true;
+                } catch {
+                    linkValidation.textContent = 'Please enter a valid URL (starting with http:// or https://)';
+                    linkValidation.className = 'link-invalid';
+                    return false;
+                }
+            }
+            
+            // Render all timers with started timers at the bottom
+            function renderTimers() {
+                timersContainer.innerHTML = '';
+                
+                // Separate running and non-running timers
+                const runningTimers = timers.filter(timer => timer.isRunning);
+                const nonRunningTimers = timers.filter(timer => !timer.isRunning);
+                
+                // First render non-running timers
+                nonRunningTimers.forEach(timer => {
+                    const timerElement = createTimerElement(timer);
+                    timersContainer.appendChild(timerElement);
+                });
+                
+                // Then render running timers
+                runningTimers.forEach(timer => {
+                    const timerElement = createTimerElement(timer);
+                    timersContainer.appendChild(timerElement);
+                });
+                
+                // Add the "Add Timer" button at the end
+                timersContainer.appendChild(addTimerBtn);
+            }
+            
+            // Create a timer card element
+            function createTimerElement(timer) {
+                const timerElement = document.createElement('div');
+                timerElement.className = 'timer-card';
+                timerElement.dataset.id = timer.id;
+                
+                // Calculate remaining time
+                let remainingTime = timer.duration;
+                if (timer.isRunning) {
+                    const elapsed = Date.now() - timer.startTime;
+                    remainingTime = Math.max(timer.duration - elapsed, 0);
+                    
+                    if (remainingTime <= 0) {
+                        timer.isRunning = false;
+                        updateTimerInFirestore(timer);
+                    }
+                }
+                
+                const { hours, minutes, seconds } = msToTime(remainingTime);
+                
+                // Create title with link if available
+                let titleContent = timer.title;
+                if (timer.link) {
+                    titleContent = `<a href="${timer.link}" target="_blank">${timer.title}</a>`;
+                }
+                
+                // Set background style
+                let headerStyle = '';
+                if (timer.bgImage) {
+                    headerStyle = `background-image: url('${timer.bgImage}')`;
+                } else {
+                    headerStyle = `background-color: ${timer.color || currentTheme}`;
+                }
+                
+                timerElement.innerHTML = `
+                    <div class="timer-header" style="${headerStyle}">
+                        <div class="timer-header-overlay"></div>
+                        <div class="timer-header-content">
+                            <div class="timer-actions">
+                                <button class="timer-action-btn edit-timer-btn"><i class="fas fa-edit"></i></button>
+                                <button class="timer-action-btn delete-timer-btn"><i class="fas fa-trash"></i></button>
+                            </div>
+                            <div class="timer-tag">${timer.tag}</div>
+                            <div class="timer-title">${titleContent}</div>
+                        </div>
+                    </div>
+                    <div class="timer-display">
+                        <div class="timer">${formatTime(hours, minutes, seconds)}</div>
+                        <div class="timer-controls">
+                            <button class="start-btn" ${timer.isRunning ? 'disabled' : ''}>Start</button>
+                            <button class="reset-btn" ${!timer.isRunning ? 'disabled' : ''}>Reset</button>
+                        </div>
+                    </div>
+                `;
+                
+                // Add event listeners
+                const startBtn = timerElement.querySelector('.start-btn');
+                const resetBtn = timerElement.querySelector('.reset-btn');
+                const editBtn = timerElement.querySelector('.edit-timer-btn');
+                const deleteBtn = timerElement.querySelector('.delete-timer-btn');
+                
+                startBtn.addEventListener('click', () => {
+                    startTimer(timer.id);
+                    // Move this timer to the bottom when started
+                    renderTimers();
+                });
+                resetBtn.addEventListener('click', () => resetTimer(timer.id));
+                editBtn.addEventListener('click', () => openEditTimerModal(timer.id));
+                deleteBtn.addEventListener('click', () => deleteTimer(timer.id));
+                
+                // If timer is running, start the countdown
+                if (timer.isRunning) {
+                    const timerDisplay = timerElement.querySelector('.timer');
+                    startCountdown(timerDisplay, timer.duration, timer.startTime);
+                }
+                
+                return timerElement;
+            }
+            
+            // Timer functions
+            function startTimer(timerId) {
+                const timer = timers.find(t => t.id === timerId);
+                if (!timer || timer.isRunning) return;
+                
+                timer.isRunning = true;
+                timer.startTime = Date.now();
+                updateTimerInFirestore(timer);
+            }
+            
+            function resetTimer(timerId) {
+                const timer = timers.find(t => t.id === timerId);
+                if (!timer || !timer.isRunning) return;
+                
+                timer.isRunning = false;
+                updateTimerInFirestore(timer);
+                
+                renderTimers();
+            }
+            
+            function startCountdown(timerDisplay, duration, startTime) {
+                const endTime = startTime + duration;
+                
+                function update() {
+                    const remaining = endTime - Date.now();
+                    
+                    if (remaining <= 0) {
+                        timerDisplay.textContent = '00:00:00';
+                        return;
+                    }
+                    
+                    const { hours, minutes, seconds } = msToTime(remaining);
+                    timerDisplay.textContent = formatTime(hours, minutes, seconds);
+                    
+                    requestAnimationFrame(update);
+                }
+                
+                update();
+            }
+            
+            // Update timer in Firestore
+            function updateTimerInFirestore(timer) {
+                const timerData = {
+                    ...timer,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                
+                db.collection('timers').doc(timer.id).update(timerData)
+                    .catch(error => {
+                        console.error('Error updating timer:', error);
+                    });
+            }
+            
+            // Modal functions
+            function openAddTimerModal() {
+                currentEditTimerId = null;
+                timerModalTitle.textContent = 'Add New Timer';
+                tagInput.value = '';
+                titleInput.value = '';
+                subtitleInput.value = '';
+                bgImageInput.value = '';
+                hoursInput.value = '24';
+                minutesInput.value = '0';
+                secondsInput.value = '0';
+                deleteTimerBtn.style.display = 'none';
+                linkValidation.textContent = 'Leave empty for no link';
+                linkValidation.className = 'link-valid';
+                updateBgPreview();
+                
+                timerModal.style.display = 'flex';
+            }
+            
+            function openEditTimerModal(timerId) {
+                const timer = timers.find(t => t.id === timerId);
+                if (!timer) return;
+                
+                currentEditTimerId = timerId;
+                timerModalTitle.textContent = 'Edit Timer';
+                
+                const { hours, minutes, seconds } = msToTime(timer.duration);
+                
+                tagInput.value = timer.tag;
+                titleInput.value = timer.title;
+                subtitleInput.value = timer.link || '';
+                bgImageInput.value = timer.bgImage || '';
+                hoursInput.value = hours;
+                minutesInput.value = minutes;
+                secondsInput.value = seconds;
+                deleteTimerBtn.style.display = 'block';
+                updateBgPreview();
+                
+                if (timer.link) {
+                    linkValidation.textContent = 'Valid URL';
+                    linkValidation.className = 'link-valid';
+                } else {
+                    linkValidation.textContent = 'Leave empty for no link';
+                    linkValidation.className = 'link-valid';
+                }
+                
+                timerModal.style.display = 'flex';
+            }
+            
+            function saveTimer() {
+                const tag = tagInput.value.trim() || 'TIMER';
+                const title = titleInput.value.trim() || 'New Timer';
+                const subtitle = subtitleInput.value.trim();
+                const bgImage = bgImageInput.value.trim();
+                
+                // Validate URL if provided
+                let link = '';
+                if (subtitle) {
+                    if (!validateUrl()) {
+                        alert('Please enter a valid URL or leave the field empty');
+                        return;
+                    }
+                    link = subtitle;
+                }
+                
+                const hours = parseInt(hoursInput.value) || 0;
+                const minutes = parseInt(minutesInput.value) || 0;
+                const seconds = parseInt(secondsInput.value) || 0;
+                
+                const duration = (hours * 3600 + minutes * 60 + seconds) * 1000;
+                
+                if (currentEditTimerId) {
+                    // Update existing timer
+                    const timerIndex = timers.findIndex(t => t.id === currentEditTimerId);
+                    if (timerIndex !== -1) {
+                        const updatedTimer = {
+                            ...timers[timerIndex],
+                            tag,
+                            title,
+                            link: link || '',
+                            bgImage: bgImage || '',
+                            duration,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        };
+                        
+                        db.collection('timers').doc(currentEditTimerId).update(updatedTimer)
+                            .then(() => {
+                                closeTimerModal.click();
+                            })
+                            .catch(error => {
+                                console.error('Error updating timer:', error);
+                                alert('Error updating timer: ' + error.message);
+                            });
+                    }
+                } else {
+                    // Add new timer
+                    const newTimer = {
+                        tag,
+                        title,
+                        link: link || '',
+                        bgImage: bgImage || '',
+                        duration,
+                        isRunning: false,
+                        color: currentTheme,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    db.collection('timers').add(newTimer)
+                        .then(() => {
+                            closeTimerModal.click();
+                        })
+                        .catch(error => {
+                            console.error('Error adding timer:', error);
+                            alert('Error adding timer: ' + error.message);
+                        });
+                }
+            }
+            
+            function deleteTimer(timerId) {
+                if (confirm('Are you sure you want to delete this timer?')) {
+                    db.collection('timers').doc(timerId).delete()
+                        .then(() => {
+                            closeTimerModal.click();
+                        })
+                        .catch(error => {
+                            console.error('Error deleting timer:', error);
+                            alert('Error deleting timer: ' + error.message);
+                        });
+                }
+            }
+            
+            // Helper functions
+            function msToTime(ms) {
+                const seconds = Math.floor((ms / 1000) % 60);
+                const minutes = Math.floor((ms / (1000 * 60)) % 60);
+                const hours = Math.floor((ms / (1000 * 60 * 60)));
+                
+                return { hours, minutes, seconds };
+            }
+            
+            function formatTime(h, m, s) {
+                return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            }
+            
+            function applyTheme(color) {
+                document.documentElement.style.setProperty('--primary-color', color);
+                currentTheme = color;
+                saveLocalSettings();
+            }
+            
+            // Event Listeners
+            addTimerBtn.addEventListener('click', openAddTimerModal);
+            
+            settingsBtn.addEventListener('click', () => {
+                settingsModal.style.display = 'flex';
+            });
+            
+            closeSettingsModal.addEventListener('click', () => {
+                settingsModal.style.display = 'none';
+            });
+            
+            closeTimerModal.addEventListener('click', () => {
+                timerModal.style.display = 'none';
+            });
+            
+            saveSettingsBtn.addEventListener('click', () => {
+                applyTheme(themeColorSelect.value);
+                setDarkMode(darkModeSelect.value === 'dark');
+                settingsModal.style.display = 'none';
+            });
+            
+            saveTimerBtn.addEventListener('click', saveTimer);
+            
+            deleteTimerBtn.addEventListener('click', () => {
+                if (currentEditTimerId) {
+                    deleteTimer(currentEditTimerId);
+                }
+            });
+            
+            // Close modals when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target === settingsModal) {
+                    settingsModal.style.display = 'none';
+                }
+                if (e.target === timerModal) {
+                    timerModal.style.display = 'none';
+                }
+            });
+            
+            // Initialize the app
+            init();
+        </script>
+    </div>
+</body>
+</html>
