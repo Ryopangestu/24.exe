@@ -570,6 +570,7 @@
             let currentTheme = '#4a6bff';
             let darkMode = false;
             let unsubscribeTimers = null;
+            let countdownIntervals = {};
 
             // Initialize the app
             function init() {
@@ -690,6 +691,9 @@
             
             // Render all timers with started timers at the bottom
             function renderTimers() {
+                // Clear any existing countdown intervals
+                clearAllCountdowns();
+                
                 timersContainer.innerHTML = '';
                 
                 // Separate running and non-running timers
@@ -712,6 +716,14 @@
                 timersContainer.appendChild(addTimerBtn);
             }
             
+            // Clear all countdown intervals
+            function clearAllCountdowns() {
+                Object.values(countdownIntervals).forEach(interval => {
+                    clearInterval(interval);
+                });
+                countdownIntervals = {};
+            }
+            
             // Create a timer card element
             function createTimerElement(timer) {
                 const timerElement = document.createElement('div');
@@ -720,13 +732,19 @@
                 
                 // Calculate remaining time
                 let remainingTime = timer.duration;
+                let isRunning = timer.isRunning;
+                
                 if (timer.isRunning) {
                     const elapsed = Date.now() - timer.startTime;
                     remainingTime = Math.max(timer.duration - elapsed, 0);
                     
                     if (remainingTime <= 0) {
-                        timer.isRunning = false;
-                        updateTimerInFirestore(timer);
+                        isRunning = false;
+                        // Update the timer in Firestore to mark it as completed
+                        db.collection('timers').doc(timer.id).update({
+                            isRunning: false,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        });
                     }
                 }
                 
@@ -761,8 +779,8 @@
                     <div class="timer-display">
                         <div class="timer">${formatTime(hours, minutes, seconds)}</div>
                         <div class="timer-controls">
-                            <button class="start-btn" ${timer.isRunning ? 'disabled' : ''}>Start</button>
-                            <button class="reset-btn" ${!timer.isRunning ? 'disabled' : ''}>Reset</button>
+                            <button class="start-btn" ${isRunning ? 'disabled' : ''}>Start</button>
+                            <button class="reset-btn" ${!isRunning ? 'disabled' : ''}>Reset</button>
                         </div>
                     </div>
                 `;
@@ -783,9 +801,9 @@
                 deleteBtn.addEventListener('click', () => deleteTimer(timer.id));
                 
                 // If timer is running, start the countdown
-                if (timer.isRunning) {
+                if (isRunning) {
                     const timerDisplay = timerElement.querySelector('.timer');
-                    startCountdown(timerDisplay, timer.duration, timer.startTime);
+                    startCountdown(timerDisplay, timer.id, timer.duration, timer.startTime);
                 }
                 
                 return timerElement;
@@ -805,30 +823,46 @@
                 const timer = timers.find(t => t.id === timerId);
                 if (!timer || !timer.isRunning) return;
                 
+                // Clear the countdown for this timer
+                if (countdownIntervals[timerId]) {
+                    clearInterval(countdownIntervals[timerId]);
+                    delete countdownIntervals[timerId];
+                }
+                
                 timer.isRunning = false;
                 updateTimerInFirestore(timer);
                 
                 renderTimers();
             }
             
-            function startCountdown(timerDisplay, duration, startTime) {
+            function startCountdown(timerDisplay, timerId, duration, startTime) {
                 const endTime = startTime + duration;
+                
+                // Clear any existing interval for this timer
+                if (countdownIntervals[timerId]) {
+                    clearInterval(countdownIntervals[timerId]);
+                }
                 
                 function update() {
                     const remaining = endTime - Date.now();
                     
                     if (remaining <= 0) {
                         timerDisplay.textContent = '00:00:00';
+                        // Clear the interval when timer completes
+                        if (countdownIntervals[timerId]) {
+                            clearInterval(countdownIntervals[timerId]);
+                            delete countdownIntervals[timerId];
+                        }
                         return;
                     }
                     
                     const { hours, minutes, seconds } = msToTime(remaining);
                     timerDisplay.textContent = formatTime(hours, minutes, seconds);
-                    
-                    requestAnimationFrame(update);
                 }
                 
+                // Update immediately and then every second
                 update();
+                countdownIntervals[timerId] = setInterval(update, 1000);
             }
             
             // Update timer in Firestore
@@ -965,6 +999,12 @@
             
             function deleteTimer(timerId) {
                 if (confirm('Are you sure you want to delete this timer?')) {
+                    // Clear the countdown for this timer if it exists
+                    if (countdownIntervals[timerId]) {
+                        clearInterval(countdownIntervals[timerId]);
+                        delete countdownIntervals[timerId];
+                    }
+                    
                     db.collection('timers').doc(timerId).delete()
                         .then(() => {
                             closeTimerModal.click();
