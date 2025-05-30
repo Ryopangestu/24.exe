@@ -879,7 +879,6 @@
             let darkMode = false;
             let timerSearchTerm = '';
             let tableSearchTerm = '';
-            let activeCountdowns = {};
             
             // Initialize the app
             function init() {
@@ -910,6 +909,73 @@
                 
                 // Set up search functionality
                 setupSearch();
+                
+                // Event listeners for buttons
+                addTimerBtn.addEventListener('click', openAddTimerModal);
+                addTableBtn.addEventListener('click', openAddTableModal);
+                
+                settingsBtn.addEventListener('click', () => {
+                    settingsModal.style.display = 'flex';
+                });
+                
+                closeSettingsModal.addEventListener('click', () => {
+                    settingsModal.style.display = 'none';
+                });
+                
+                closeTimerModal.addEventListener('click', () => {
+                    timerModal.style.display = 'none';
+                });
+                
+                closeTableModal.addEventListener('click', () => {
+                    tableModal.style.display = 'none';
+                });
+                
+                closeTableRowModal.addEventListener('click', () => {
+                    tableRowModal.style.display = 'none';
+                });
+                
+                saveSettingsBtn.addEventListener('click', () => {
+                    saveSettingsToFirebase();
+                    settingsModal.style.display = 'none';
+                });
+                
+                saveTimerBtn.addEventListener('click', saveTimer);
+                saveTableBtn.addEventListener('click', saveTable);
+                saveTableRowBtn.addEventListener('click', saveTableRow);
+                
+                deleteTimerBtn.addEventListener('click', () => {
+                    if (currentEditTimerId) {
+                        deleteTimer(currentEditTimerId);
+                    }
+                });
+                
+                deleteTableBtn.addEventListener('click', () => {
+                    if (currentEditTableId) {
+                        deleteTable(currentEditTableId);
+                    }
+                });
+                
+                deleteTableRowBtn.addEventListener('click', () => {
+                    if (currentEditRowId && currentTableIdForRow) {
+                        deleteTableRow(currentTableIdForRow, currentEditRowId);
+                    }
+                });
+                
+                // Close modals when clicking outside
+                window.addEventListener('click', (e) => {
+                    if (e.target === settingsModal) {
+                        settingsModal.style.display = 'none';
+                    }
+                    if (e.target === timerModal) {
+                        timerModal.style.display = 'none';
+                    }
+                    if (e.target === tableModal) {
+                        tableModal.style.display = 'none';
+                    }
+                    if (e.target === tableRowModal) {
+                        tableRowModal.style.display = 'none';
+                    }
+                });
             }
             
             // Set up tab navigation
@@ -995,7 +1061,10 @@
                         };
                     });
                     
-                    renderTimers();
+                    // Only render timers if the container is empty
+                    if (timersContainer.children.length <= 1) { // 1 for the "Add Timer" button
+                        renderTimers();
+                    }
                 });
             }
             
@@ -1210,7 +1279,7 @@
                 });
             }
             
-            // Render all timers with started timers at the bottom
+            // Render all timers
             function renderTimers() {
                 const filteredTimers = filterTimers();
                 
@@ -1224,15 +1293,7 @@
                     return;
                 }
                 
-                // Sort timers - running timers first
-                const sortedTimers = [...filteredTimers].sort((a, b) => {
-                    if (a.isRunning && !b.isRunning) return -1;
-                    if (!a.isRunning && b.isRunning) return 1;
-                    return 0;
-                });
-                
-                // Render all timers
-                sortedTimers.forEach(timer => {
+                filteredTimers.forEach(timer => {
                     const timerElement = createTimerElement(timer);
                     timersContainer.appendChild(timerElement);
                 });
@@ -1479,17 +1540,46 @@
                 const deleteBtn = timerElement.querySelector('.delete-timer-btn');
                 
                 startBtn.addEventListener('click', () => {
-                    startTimer(timer.id);
+                    if (confirm('Are you sure you want to start this timer?')) {
+                        startTimer(timer.id);
+                        
+                        // Update UI immediately
+                        startBtn.disabled = true;
+                        resetBtn.disabled = false;
+                        
+                        const timerDisplay = timerElement.querySelector('.timer');
+                        startCountdown(timerDisplay, timer.duration, Date.now(), () => {
+                            // Callback when timer finishes
+                            startBtn.disabled = false;
+                            resetBtn.disabled = true;
+                        });
+                    }
                 });
                 
-                resetBtn.addEventListener('click', () => resetTimer(timer.id));
+                resetBtn.addEventListener('click', () => {
+                    resetTimer(timer.id);
+                    
+                    // Update UI immediately
+                    startBtn.disabled = false;
+                    resetBtn.disabled = true;
+                    
+                    const { hours, minutes, seconds } = msToTime(timer.duration);
+                    timerElement.querySelector('.timer').textContent = formatTime(hours, minutes, seconds);
+                });
+                
                 editBtn.addEventListener('click', () => openEditTimerModal(timer.id));
                 deleteBtn.addEventListener('click', () => deleteTimer(timer.id));
                 
                 // If timer is running, start the countdown
                 if (timer.isRunning) {
                     const timerDisplay = timerElement.querySelector('.timer');
-                    startCountdown(timerDisplay, timer.duration, timer.startTime, timer.id);
+                    startCountdown(timerDisplay, timer.duration, timer.startTime, () => {
+                        // Callback when timer finishes
+                        const startBtn = timerElement.querySelector('.start-btn');
+                        const resetBtn = timerElement.querySelector('.reset-btn');
+                        startBtn.disabled = false;
+                        resetBtn.disabled = true;
+                    });
                 }
                 
                 return timerElement;
@@ -1498,27 +1588,14 @@
             // Timer functions
             function startTimer(timerId) {
                 const timer = timers.find(t => t.id === timerId);
-                if (!timer || timer.isRunning) return;
+                if (!timer) return;
                 
-                // Stop any other running timers
-                timers.forEach(t => {
-                    if (t.isRunning) {
-                        t.isRunning = false;
-                        saveTimerToFirebase(t);
-                    }
-                });
+                // If timer is already running, do nothing
+                if (timer.isRunning) return;
                 
                 timer.isRunning = true;
                 timer.startTime = Date.now();
-                
-                saveTimerToFirebase(timer)
-                    .then(() => {
-                        // Re-render to update the UI
-                        renderTimers();
-                    })
-                    .catch(error => {
-                        console.error('Error starting timer:', error);
-                    });
+                saveTimerToFirebase(timer);
             }
             
             function resetTimer(timerId) {
@@ -1526,23 +1603,10 @@
                 if (!timer || !timer.isRunning) return;
                 
                 timer.isRunning = false;
-                
-                saveTimerToFirebase(timer)
-                    .then(() => {
-                        // Re-render to update the UI
-                        renderTimers();
-                    })
-                    .catch(error => {
-                        console.error('Error resetting timer:', error);
-                    });
+                saveTimerToFirebase(timer);
             }
             
-            function startCountdown(timerDisplay, duration, startTime, timerId) {
-                // Clear any existing countdown for this timer
-                if (activeCountdowns[timerId]) {
-                    cancelAnimationFrame(activeCountdowns[timerId]);
-                }
-                
+            function startCountdown(timerDisplay, duration, startTime, onComplete) {
                 const endTime = startTime + duration;
                 
                 function update() {
@@ -1550,23 +1614,14 @@
                     
                     if (remaining <= 0) {
                         timerDisplay.textContent = '00:00:00';
-                        
-                        // Update the timer state in the database
-                        const timer = timers.find(t => t.id === timerId);
-                        if (timer) {
-                            timer.isRunning = false;
-                            saveTimerToFirebase(timer);
-                        }
-                        
-                        // Re-render to update the UI
-                        renderTimers();
+                        if (onComplete) onComplete();
                         return;
                     }
                     
                     const { hours, minutes, seconds } = msToTime(remaining);
                     timerDisplay.textContent = formatTime(hours, minutes, seconds);
                     
-                    activeCountdowns[timerId] = requestAnimationFrame(update);
+                    requestAnimationFrame(update);
                 }
                 
                 update();
@@ -1715,8 +1770,7 @@
                     link: link || '',
                     bgImage: bgImage || '',
                     duration,
-                    color: currentTheme,
-                    isRunning: false
+                    color: currentTheme
                 };
                 
                 if (currentEditTimerId) {
@@ -1738,6 +1792,8 @@
                     });
                 } else {
                     // Add new timer
+                    timerData.isRunning = false;
+                    
                     saveTimerToFirebase(timerData)
                         .then(() => {
                             closeTimerModal.click();
@@ -1869,73 +1925,6 @@
                 document.documentElement.style.setProperty('--primary-color', color);
                 currentTheme = color;
             }
-            
-            // Event Listeners
-            addTimerBtn.addEventListener('click', openAddTimerModal);
-            addTableBtn.addEventListener('click', openAddTableModal);
-            
-            settingsBtn.addEventListener('click', () => {
-                settingsModal.style.display = 'flex';
-            });
-            
-            closeSettingsModal.addEventListener('click', () => {
-                settingsModal.style.display = 'none';
-            });
-            
-            closeTimerModal.addEventListener('click', () => {
-                timerModal.style.display = 'none';
-            });
-            
-            closeTableModal.addEventListener('click', () => {
-                tableModal.style.display = 'none';
-            });
-            
-            closeTableRowModal.addEventListener('click', () => {
-                tableRowModal.style.display = 'none';
-            });
-            
-            saveSettingsBtn.addEventListener('click', () => {
-                saveSettingsToFirebase();
-                settingsModal.style.display = 'none';
-            });
-            
-            saveTimerBtn.addEventListener('click', saveTimer);
-            saveTableBtn.addEventListener('click', saveTable);
-            saveTableRowBtn.addEventListener('click', saveTableRow);
-            
-            deleteTimerBtn.addEventListener('click', () => {
-                if (currentEditTimerId) {
-                    deleteTimer(currentEditTimerId);
-                }
-            });
-            
-            deleteTableBtn.addEventListener('click', () => {
-                if (currentEditTableId) {
-                    deleteTable(currentEditTableId);
-                }
-            });
-            
-            deleteTableRowBtn.addEventListener('click', () => {
-                if (currentEditRowId && currentTableIdForRow) {
-                    deleteTableRow(currentTableIdForRow, currentEditRowId);
-                }
-            });
-            
-            // Close modals when clicking outside
-            window.addEventListener('click', (e) => {
-                if (e.target === settingsModal) {
-                    settingsModal.style.display = 'none';
-                }
-                if (e.target === timerModal) {
-                    timerModal.style.display = 'none';
-                }
-                if (e.target === tableModal) {
-                    tableModal.style.display = 'none';
-                }
-                if (e.target === tableRowModal) {
-                    tableRowModal.style.display = 'none';
-                }
-            });
             
             // Initialize the app
             init();
