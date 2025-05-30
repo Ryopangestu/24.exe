@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Timer Dashboard</title>
+    <title>Advanced Timer & Table Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -21,12 +21,8 @@
             --input-bg: #ffffff;
             --input-text: #333;
             --table-header-bg: #f1f3ff;
-            --table-row-even: #f8f9ff;
-            --table-row-hover: #eef0ff;
-            --tab-active-bg: #4a6bff;
-            --tab-active-text: #ffffff;
-            --tab-inactive-bg: #e0e0e0;
-            --tab-inactive-text: #333333;
+            --table-row-even: #f8f9fa;
+            --table-row-hover: #e9ecef;
         }
         
         body {
@@ -52,11 +48,9 @@
             --modal-text: #f8f9fa;
             --input-bg: #4a5568;
             --input-text: #f8f9fa;
-            --table-header-bg: #1a1a2e;
-            --table-row-even: #16213e;
-            --table-row-hover: #0f3460;
-            --tab-inactive-bg: #4a5568;
-            --tab-inactive-text: #a0aec0;
+            --table-header-bg: #1a1a1a;
+            --table-row-even: #161616;
+            --table-row-hover: #2d2d2d;
         }
         
         .app-container {
@@ -74,10 +68,54 @@
             border-radius: 8px;
         }
         
+        .app-title-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .app-logo {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            border-radius: 4px;
+            display: none;
+        }
+        
         .app-title {
             font-size: 24px;
             font-weight: 700;
             color: var(--primary-color);
+            margin: 0;
+        }
+        
+        .view-toggle {
+            display: flex;
+            background-color: rgba(74, 107, 255, 0.1);
+            border-radius: 6px;
+            padding: 2px;
+            margin: 0 15px;
+            gap: 2px;
+        }
+        
+        .view-toggle-btn {
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-weight: 600;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        
+        .view-toggle-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .header-controls {
+            display: flex;
+            align-items: center;
         }
         
         .settings-btn {
@@ -96,71 +134,26 @@
             transform: rotate(30deg);
         }
         
-        /* Search Bar */
-        .search-container {
-            margin-bottom: 20px;
-            display: flex;
-            gap: 10px;
-        }
-        
-        .search-input {
-            flex: 1;
-            padding: 10px 15px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-family: inherit;
-            background-color: var(--input-bg);
-            color: var(--input-text);
-        }
-        
-        .search-input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(74, 107, 255, 0.2);
-        }
-        
-        /* Tab Navigation */
-        .tab-navigation {
-            display: flex;
-            margin-bottom: 20px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .tab-btn {
-            padding: 10px 20px;
-            background-color: var(--tab-inactive-bg);
-            color: var(--tab-inactive-text);
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            border-radius: 6px 6px 0 0;
-            margin-right: 5px;
-        }
-        
-        .tab-btn.active {
-            background-color: var(--tab-active-bg);
-            color: var(--tab-active-text);
-        }
-        
-        .tab-btn:hover:not(.active) {
-            background-color: var(--border-color);
-        }
-        
-        .tab-content {
+        /* Main content area */
+        .content-area {
             display: none;
         }
         
-        .tab-content.active {
+        .content-area.active {
             display: block;
+            animation: fadeIn 0.3s ease;
         }
         
-        /* Timers Section */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        /* Timer View Styles */
         .timers-container {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 20px;
-            margin-bottom: 30px;
         }
         
         .timer-card {
@@ -325,102 +318,183 @@
             margin-right: 8px;
         }
         
-        /* Tables Section */
+        /* Table View Styles */
         .tables-container {
-            display: flex;
-            flex-direction: column;
-            gap: 30px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
         }
         
-        .table-section {
+        .table-card {
             background-color: var(--card-bg);
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        .table-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
         }
         
         .table-header {
+            color: white;
+            padding: 15px;
+            position: relative;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        
+        .table-header-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+        }
+        
+        .table-header-content {
+            position: relative;
+            z-index: 1;
             display: flex;
-            justify-content: space-between;
+            flex-direction: column;
             align-items: center;
-            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .table-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-size: cover;
+            background-position: center;
+            margin-bottom: 10px;
+            border: 3px solid white;
         }
         
         .table-title {
             font-size: 18px;
             font-weight: 700;
-            color: var(--primary-color);
+            margin: 5px 0;
         }
         
         .table-actions {
+            position: absolute;
+            top: 10px;
+            right: 10px;
             display: flex;
-            gap: 10px;
+            gap: 5px;
+            z-index: 2;
         }
         
-        .data-table-container {
-            overflow-x: auto;
-        }
-        
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        
-        .data-table th {
-            background-color: var(--table-header-bg);
-            padding: 12px 15px;
-            text-align: left;
-            font-weight: 600;
-            border-bottom: 2px solid var(--border-color);
-        }
-        
-        .data-table td {
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .data-table tr:nth-child(even) {
-            background-color: var(--table-row-even);
-        }
-        
-        .data-table tr:hover {
-            background-color: var(--table-row-hover);
-        }
-        
-        .table-link {
-            color: var(--primary-color);
-            text-decoration: none;
+        .table-action-btn {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
             transition: all 0.2s ease;
         }
         
-        .table-link:hover {
-            text-decoration: underline;
-            opacity: 0.8;
+        .table-action-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
         }
         
-        /* Circular Icon for Table Rows */
-        .table-icon {
-            width: 40px;
-            height: 40px;
+        .table-content {
+            padding: 20px;
+            flex-grow: 1;
+        }
+        
+        .table-entries {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .table-entry {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            min-height: 40px;
+        }
+        
+        .table-entry:last-child {
+            border-bottom: none;
+        }
+        
+        .entry-number {
+            font-weight: bold;
+            min-width: 30px;
+            color: var(--primary-color);
+            height: 24px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .entry-icon {
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
             background-size: cover;
             background-position: center;
-            background-repeat: no-repeat;
-            display: inline-block;
-            vertical-align: middle;
             margin-right: 10px;
-            border: 2px solid var(--border-color);
+            flex-shrink: 0;
         }
         
-        .add-row-btn {
-            margin-top: 10px;
-            display: inline-flex;
+        .entry-title {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            height: 24px;
+            display: flex;
             align-items: center;
-            gap: 8px;
+        }
+        
+        .entry-title a {
+            color: var(--text-color);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        
+        .entry-title a:hover {
+            color: var(--primary-color);
+            text-decoration: underline;
+        }
+        
+        .add-table-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(74, 107, 255, 0.1);
+            color: var(--primary-color);
+            border: 2px dashed var(--primary-color);
+            min-height: 150px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .add-table-btn:hover {
+            background-color: rgba(74, 107, 255, 0.2);
+            transform: scale(1.02);
+        }
+        
+        .add-table-btn i {
+            margin-right: 8px;
         }
         
         /* Modal Styles */
@@ -546,28 +620,225 @@
             border: 1px solid var(--border-color);
         }
         
-        /* Preview for icon */
-        .icon-preview {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background-size: cover;
-            background-position: center;
-            margin-top: 10px;
-            border: 1px solid var(--border-color);
-            display: inline-block;
+        /* Table Entry Form */
+        .entry-form {
+            margin-top: 15px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 15px;
         }
         
-        /* Table icon preview */
-        .table-icon-preview {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background-size: cover;
-            background-position: center;
-            margin-top: 10px;
+        .entry-form-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .entries-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
             border: 1px solid var(--border-color);
-            display: inline-block;
+            border-radius: 6px;
+            padding: 10px;
+        }
+        
+        .entry-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background-color: var(--secondary-color);
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+        
+        .entry-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .entry-item-number {
+            font-weight: bold;
+            margin-right: 10px;
+            color: var(--primary-color);
+        }
+        
+        .entry-item-title {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .entry-item-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .entry-item-btn {
+            background: none;
+            border: none;
+            color: var(--light-text);
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        
+        .entry-item-btn:hover {
+            color: var(--primary-color);
+        }
+        
+        /* Tag styles */
+        .tag-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            margin-left: 8px;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        /* Search bar for tables */
+        .tables-search-container {
+            margin-bottom: 20px;
+            position: relative;
+            width: 100%;
+        }
+        
+        .tables-search-container input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background-color: var(--input-bg);
+            color: var(--input-text);
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        .tables-search-container i {
+            position: absolute;
+            right: 15px;
+            top: 12px;
+            color: var(--light-text);
+        }
+        
+        /* Check button styles */
+        .check-btn {
+            background-color: #4CAF50;
+            padding: 6px 12px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        
+        .check-btn:hover {
+            background-color: #3e8e41;
+        }
+        
+        .last-checked {
+            font-size: 12px;
+            color: var(--light-text);
+            margin-top: 5px;
+        }
+        
+        /* Tag selector styles */
+        .tag-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .tag-option {
+            padding: 4px 8px;
+            border-radius: 4px;
+            background-color: var(--secondary-color);
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .tag-option.selected {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        /* Entry tags in table view */
+        .entry-tags {
+            display: flex;
+            gap: 5px;
+            margin-left: 10px;
+            align-items: center;
+        }
+        
+        .entry-tag {
+            font-size: 10px;
+            background-color: rgba(0, 0, 0, 0.2);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Timer tags */
+        .timer-tags {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+            flex-wrap: wrap;
+        }
+        
+        .timer-tag-badge {
+            font-size: 10px;
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Entry Edit Modal */
+        .entry-modal-content {
+            background-color: var(--modal-bg);
+            color: var(--modal-text);
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Desktop specific styles */
+        @media (min-width: 1024px) {
+            .timers-container, .tables-container {
+                grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            }
+            
+            .timer-card, .table-card {
+                min-height: 250px;
+            }
+            
+            .timer {
+                font-size: 36px;
+            }
+            
+            .timer-title, .table-title {
+                font-size: 20px;
+            }
         }
         
         /* Link validation indicator */
@@ -578,55 +849,50 @@
         .link-invalid {
             color: #FF5722;
         }
-        
-        /* No results message */
-        .no-results {
-            text-align: center;
-            padding: 20px;
+
+        .sync-status {
+            font-size: 12px;
             color: var(--light-text);
-            font-style: italic;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
         }
-        
-        /* Desktop specific styles */
-        @media (min-width: 1024px) {
-            .timers-container {
-                grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            }
-            
-            .timer-card {
-                min-height: 250px;
-            }
-            
-            .timer {
-                font-size: 36px;
-            }
-            
-            .timer-title {
-                font-size: 20px;
-            }
+
+        /* Entry form sections */
+        .form-section {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .form-section-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: var(--primary-color);
         }
     </style>
 </head>
 <body>
     <div class="app-container">
         <div class="header">
-            <h1 class="app-title">Advanced Timer Dashboard</h1>
-            <button class="settings-btn" id="settingsBtn">
-                <i class="fas fa-cog"></i>
-            </button>
-        </div>
-        
-        <!-- Tab Navigation -->
-        <div class="tab-navigation">
-            <button class="tab-btn active" id="timersTabBtn">Timers</button>
-            <button class="tab-btn" id="tablesTabBtn">Tables</button>
-        </div>
-        
-        <!-- Timers Tab Content -->
-        <div class="tab-content active" id="timersTab">
-            <div class="search-container">
-                <input type="text" class="search-input" id="timerSearchInput" placeholder="Search timers...">
+            <div class="app-title-container">
+                <img src="" alt="App Logo" class="app-logo" id="appLogo">
+                <h1 class="app-title">Advanced Dashboard</h1>
             </div>
+            <div class="view-toggle">
+                <button class="view-toggle-btn active" id="timerViewBtn">Timers</button>
+                <button class="view-toggle-btn" id="tableViewBtn">Tables</button>
+            </div>
+            <div class="header-controls">
+                <button class="settings-btn" id="settingsBtn">
+                    <i class="fas fa-cog"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Timer View -->
+        <div class="content-area active" id="timerView">
             <div class="timers-container" id="timersContainer">
                 <!-- Timers will be added here dynamically -->
                 
@@ -636,17 +902,19 @@
             </div>
         </div>
         
-        <!-- Tables Tab Content -->
-        <div class="tab-content" id="tablesTab">
-            <div class="search-container">
-                <input type="text" class="search-input" id="tableSearchInput" placeholder="Search tables...">
+        <!-- Table View -->
+        <div class="content-area" id="tableView">
+            <div class="tables-search-container">
+                <input type="text" id="tablesSearchInput" placeholder="Search tables...">
+                <i class="fas fa-search"></i>
             </div>
+            
             <div class="tables-container" id="tablesContainer">
                 <!-- Tables will be added here dynamically -->
                 
-                <button class="add-table-btn" id="addTableBtn">
+                <div class="table-card add-table-btn" id="addTableBtn">
                     <i class="fas fa-plus"></i> Add New Table
-                </button>
+                </div>
             </div>
         </div>
         
@@ -673,6 +941,12 @@
                         <option value="light">Light</option>
                         <option value="dark">Dark</option>
                     </select>
+                </div>
+                <div class="form-group">
+                    <label for="logoUrlInput">Custom Logo URL</label>
+                    <input type="text" id="logoUrlInput" placeholder="https://example.com/logo.png">
+                    <div class="bg-preview" id="logoPreview"></div>
+                    <small>Leave empty to use default title</small>
                 </div>
                 <div class="form-actions">
                     <button id="saveSettings">Save Settings</button>
@@ -721,42 +995,17 @@
                     </div>
                 </div>
                 
+                <div class="form-group">
+                    <label>Timer Tags (Select multiple)</label>
+                    <div class="tag-selector" id="timerTagSelector">
+                        <!-- Tags will be added here dynamically -->
+                    </div>
+                </div>
+                
                 <div class="form-actions">
                     <button class="delete-btn" id="deleteTimerBtn" style="display: none;">Delete Timer</button>
                     <button id="saveTimerBtn">Save Timer</button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Table Row Edit/Create Modal -->
-        <div class="modal" id="tableRowModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 class="modal-title" id="tableRowModalTitle">Add New Link</h2>
-                    <button class="close-modal" id="closeTableRowModal">&times;</button>
-                </div>
-                
-                <div class="form-group">
-                    <label for="rowTitleInput">Title</label>
-                    <input type="text" id="rowTitleInput" placeholder="Link title">
-                </div>
-                
-                <div class="form-group">
-                    <label for="rowLinkInput">Link URL</label>
-                    <input type="text" id="rowLinkInput" placeholder="https://example.com">
-                    <small id="rowLinkValidation" class="link-invalid">Please enter a valid URL (starting with http:// or https://)</small>
-                </div>
-                
-                <div class="form-group">
-                    <label for="rowIconInput">Icon URL</label>
-                    <input type="text" id="rowIconInput" placeholder="https://example.com/icon.png">
-                    <div class="icon-preview" id="iconPreview"></div>
-                    <small>Leave empty for default icon</small>
-                </div>
-                
-                <div class="form-actions">
-                    <button class="delete-btn" id="deleteTableRowBtn" style="display: none;">Delete Link</button>
-                    <button id="saveTableRowBtn">Save Link</button>
+                    <span class="sync-status" id="syncStatus"></span>
                 </div>
             </div>
         </div>
@@ -769,26 +1018,83 @@
                     <button class="close-modal" id="closeTableModal">&times;</button>
                 </div>
                 
-                <div class="form-group">
-                    <label for="tableNameInput">Table Name</label>
-                    <input type="text" id="tableNameInput" placeholder="Enter table name">
+                <div class="form-section">
+                    <div class="form-section-title">Table Information</div>
+                    <div class="form-group">
+                        <label for="tableTitleInput">Table Title</label>
+                        <input type="text" id="tableTitleInput" placeholder="Table title">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="tableIconInput">Table Icon URL</label>
+                        <input type="text" id="tableIconInput" placeholder="https://example.com/image.jpg">
+                        <div class="bg-preview" id="tableIconPreview"></div>
+                        <small>Leave empty for default icon</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="tableBgInput">Background Image URL</label>
+                        <input type="text" id="tableBgInput" placeholder="https://example.com/image.jpg">
+                        <div class="bg-preview" id="tableBgPreview"></div>
+                        <small>Leave empty for default color</small>
+                    </div>
                 </div>
                 
-                <div class="form-group">
-                    <label for="tableIconInput">Icon URL</label>
-                    <input type="text" id="tableIconInput" placeholder="https://example.com/icon.png">
-                    <div class="table-icon-preview" id="tableIconPreview"></div>
-                    <small>Leave empty for default icon</small>
+                <div class="form-section">
+                    <div class="form-section-title">Table Entries</div>
+                    <div class="entries-list" id="entriesList">
+                        <!-- Entries will be added here -->
+                        <p style="text-align: center; color: var(--light-text);">No entries yet</p>
+                    </div>
                 </div>
                 
                 <div class="form-actions">
                     <button class="delete-btn" id="deleteTableBtn" style="display: none;">Delete Table</button>
                     <button id="saveTableBtn">Save Table</button>
+                    <span class="sync-status" id="tableSyncStatus"></span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Entry Edit Modal -->
+        <div class="modal" id="entryModal">
+            <div class="modal-content entry-modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="entryModalTitle">Edit Entry</h2>
+                    <button class="close-modal" id="closeEntryModal">&times;</button>
+                </div>
+                
+                <div class="form-group">
+                    <label for="modalEntryTitleInput">Entry Title</label>
+                    <input type="text" id="modalEntryTitleInput" placeholder="Entry title">
+                </div>
+                
+                <div class="form-group">
+                    <label for="modalEntryLinkInput">Entry Link URL</label>
+                    <input type="text" id="modalEntryLinkInput" placeholder="https://example.com">
+                    <small id="modalEntryLinkValidation" class="link-invalid">Please enter a valid URL (starting with http:// or https://)</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="modalEntryIconInput">Entry Icon URL</label>
+                    <input type="text" id="modalEntryIconInput" placeholder="https://example.com/image.jpg">
+                    <small>Leave empty for default icon</small>
+                </div>
+                
+                <div class="form-group">
+                    <label>Entry Tags (Select multiple)</label>
+                    <div class="tag-selector" id="modalTagSelector">
+                        <!-- Tags will be added here dynamically -->
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button id="saveEntryBtn">Save Entry</button>
                 </div>
             </div>
         </div>
 
-        <!-- Firebase SDK -->
+        <!-- Add Firebase SDK -->
         <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
         <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
 
@@ -805,26 +1111,31 @@
             };
 
             // Initialize Firebase
-            const app = firebase.initializeApp(firebaseConfig);
+            firebase.initializeApp(firebaseConfig);
             const database = firebase.database();
 
             // DOM Elements
-            const timersTabBtn = document.getElementById('timersTabBtn');
-            const tablesTabBtn = document.getElementById('tablesTabBtn');
-            const timersTab = document.getElementById('timersTab');
-            const tablesTab = document.getElementById('tablesTab');
+            const timerViewBtn = document.getElementById('timerViewBtn');
+            const tableViewBtn = document.getElementById('tableViewBtn');
+            const timerView = document.getElementById('timerView');
+            const tableView = document.getElementById('tableView');
             
             const timersContainer = document.getElementById('timersContainer');
-            const tablesContainer = document.getElementById('tablesContainer');
             const addTimerBtn = document.getElementById('addTimerBtn');
+            const tablesContainer = document.getElementById('tablesContainer');
             const addTableBtn = document.getElementById('addTableBtn');
+            
             const settingsBtn = document.getElementById('settingsBtn');
             const closeSettingsModal = document.getElementById('closeSettingsModal');
             const settingsModal = document.getElementById('settingsModal');
             const saveSettingsBtn = document.getElementById('saveSettings');
             const themeColorSelect = document.getElementById('themeColorSelect');
             const darkModeSelect = document.getElementById('darkModeSelect');
+            const logoUrlInput = document.getElementById('logoUrlInput');
+            const logoPreview = document.getElementById('logoPreview');
+            const appLogo = document.getElementById('appLogo');
             
+            // Timer modal elements
             const timerModal = document.getElementById('timerModal');
             const closeTimerModal = document.getElementById('closeTimerModal');
             const timerModalTitle = document.getElementById('timerModalTitle');
@@ -833,6 +1144,7 @@
             const linkValidation = document.getElementById('linkValidation');
             const bgImageInput = document.getElementById('bgImageInput');
             const bgPreview = document.getElementById('bgPreview');
+            const syncStatus = document.getElementById('syncStatus');
             
             // Timer form elements
             const tagInput = document.getElementById('tagInput');
@@ -841,18 +1153,7 @@
             const hoursInput = document.getElementById('hoursInput');
             const minutesInput = document.getElementById('minutesInput');
             const secondsInput = document.getElementById('secondsInput');
-            
-            // Table elements
-            const tableRowModal = document.getElementById('tableRowModal');
-            const closeTableRowModal = document.getElementById('closeTableRowModal');
-            const tableRowModalTitle = document.getElementById('tableRowModalTitle');
-            const saveTableRowBtn = document.getElementById('saveTableRowBtn');
-            const deleteTableRowBtn = document.getElementById('deleteTableRowBtn');
-            const rowTitleInput = document.getElementById('rowTitleInput');
-            const rowLinkInput = document.getElementById('rowLinkInput');
-            const rowLinkValidation = document.getElementById('rowLinkValidation');
-            const rowIconInput = document.getElementById('rowIconInput');
-            const iconPreview = document.getElementById('iconPreview');
+            const timerTagSelector = document.getElementById('timerTagSelector');
             
             // Table modal elements
             const tableModal = document.getElementById('tableModal');
@@ -860,302 +1161,305 @@
             const tableModalTitle = document.getElementById('tableModalTitle');
             const saveTableBtn = document.getElementById('saveTableBtn');
             const deleteTableBtn = document.getElementById('deleteTableBtn');
-            const tableNameInput = document.getElementById('tableNameInput');
+            const tableSyncStatus = document.getElementById('tableSyncStatus');
+            
+            // Table form elements
+            const tableTitleInput = document.getElementById('tableTitleInput');
             const tableIconInput = document.getElementById('tableIconInput');
             const tableIconPreview = document.getElementById('tableIconPreview');
+            const tableBgInput = document.getElementById('tableBgInput');
+            const tableBgPreview = document.getElementById('tableBgPreview');
+            const entriesList = document.getElementById('entriesList');
+            
+            // Entry modal elements
+            const entryModal = document.getElementById('entryModal');
+            const closeEntryModal = document.getElementById('closeEntryModal');
+            const entryModalTitle = document.getElementById('entryModalTitle');
+            const modalEntryTitleInput = document.getElementById('modalEntryTitleInput');
+            const modalEntryLinkInput = document.getElementById('modalEntryLinkInput');
+            const modalEntryLinkValidation = document.getElementById('modalEntryLinkValidation');
+            const modalEntryIconInput = document.getElementById('modalEntryIconInput');
+            const modalTagSelector = document.getElementById('modalTagSelector');
+            const saveEntryBtn = document.getElementById('saveEntryBtn');
             
             // Search elements
-            const timerSearchInput = document.getElementById('timerSearchInput');
-            const tableSearchInput = document.getElementById('tableSearchInput');
+            const tablesSearchInput = document.getElementById('tablesSearchInput');
+            
+            // Tag options
+            const tagOptions = [
+                { id: 'R', name: 'Rio' },
+                { id: 'A', name: 'Atta' },
+                { id: 'I', name: 'Ind' },
+                { id: 'RT', name: 'Ryotestnet' },
+                { id: 'ANS', name: 'Anise' },
+                { id: 'JK', name: 'Jikrara' },
+                { id: 'N', name: 'Namas' }
+            ];
             
             // App State
             let timers = [];
             let tables = [];
             let currentEditTimerId = null;
-            let currentEditRowId = null;
             let currentEditTableId = null;
-            let currentTableIdForRow = null;
-            let currentTheme = '#4a6bff';
-            let darkMode = false;
-            let timerSearchTerm = '';
-            let tableSearchTerm = '';
+            let currentEntries = [];
+            let currentEditEntryIndex = null;
+            let currentTheme = localStorage.getItem('themeColor') || '#4a6bff';
+            let darkMode = localStorage.getItem('darkMode') === 'true';
+            let selectedTags = [];
+            let modalSelectedTags = [];
+            let customLogoUrl = localStorage.getItem('customLogoUrl') || '';
             
             // Initialize the app
             function init() {
-                // Load settings from Firebase
-                loadSettings();
+                applyTheme(currentTheme);
+                setDarkMode(darkMode);
                 
-                // Load timers from Firebase
-                loadTimers();
+                // Load saved theme
+                const savedTheme = localStorage.getItem('themeColor');
+                if (savedTheme) {
+                    const option = Array.from(themeColorSelect.options).find(opt => opt.value === savedTheme);
+                    if (option) option.selected = true;
+                }
                 
-                // Load tables from Firebase
-                loadTables();
+                // Load dark mode setting
+                darkModeSelect.value = darkMode ? 'dark' : 'light';
+                
+                // Load custom logo if exists
+                if (customLogoUrl) {
+                    logoUrlInput.value = customLogoUrl;
+                    updateLogoPreview();
+                    updateAppLogo();
+                }
                 
                 // Validate URL inputs in real-time
                 subtitleInput.addEventListener('input', validateUrl);
-                rowLinkInput.addEventListener('input', validateRowUrl);
+                modalEntryLinkInput.addEventListener('input', validateModalEntryUrl);
+                logoUrlInput.addEventListener('input', updateLogoPreview);
                 
-                // Preview background image
+                // Preview background images
                 bgImageInput.addEventListener('input', updateBgPreview);
-                
-                // Preview icon image
-                rowIconInput.addEventListener('input', updateIconPreview);
-                
-                // Preview table icon image
                 tableIconInput.addEventListener('input', updateTableIconPreview);
+                tableBgInput.addEventListener('input', updateTableBgPreview);
                 
-                // Set up tab switching
-                setupTabNavigation();
+                // View toggle
+                timerViewBtn.addEventListener('click', () => toggleView('timer'));
+                tableViewBtn.addEventListener('click', () => toggleView('table'));
                 
-                // Set up search functionality
-                setupSearch();
+                // Initialize tag selectors
+                renderTagSelector(timerTagSelector);
+                renderTagSelector(modalTagSelector);
                 
-                // Event listeners for buttons
-                addTimerBtn.addEventListener('click', openAddTimerModal);
-                addTableBtn.addEventListener('click', openAddTableModal);
+                // Search functionality
+                tablesSearchInput.addEventListener('input', searchTables);
                 
-                settingsBtn.addEventListener('click', () => {
-                    settingsModal.style.display = 'flex';
+                // Load data from Firebase
+                loadTimers();
+                loadTables();
+            }
+            
+            // Update logo preview in settings
+            function updateLogoPreview() {
+                const url = logoUrlInput.value.trim();
+                if (url) {
+                    logoPreview.style.backgroundImage = `url('${url}')`;
+                } else {
+                    logoPreview.style.backgroundImage = 'none';
+                    logoPreview.style.backgroundColor = 'transparent';
+                }
+            }
+            
+            // Update app logo in header
+            function updateAppLogo() {
+                if (customLogoUrl) {
+                    appLogo.src = customLogoUrl;
+                    appLogo.style.display = 'block';
+                } else {
+                    appLogo.style.display = 'none';
+                }
+            }
+            
+            // Render tag selector options
+            function renderTagSelector(container) {
+                container.innerHTML = '';
+                tagOptions.forEach(tag => {
+                    const tagElement = document.createElement('div');
+                    tagElement.className = 'tag-option';
+                    tagElement.textContent = `${tag.id} - ${tag.name}`;
+                    tagElement.dataset.id = tag.id;
+                    tagElement.addEventListener('click', () => toggleTagSelection(tag.id, container));
+                    container.appendChild(tagElement);
                 });
+            }
+            
+            // Toggle tag selection
+            function toggleTagSelection(tagId, container) {
+                const tagsArray = container === modalTagSelector ? modalSelectedTags : selectedTags;
+                const index = tagsArray.indexOf(tagId);
                 
-                closeSettingsModal.addEventListener('click', () => {
-                    settingsModal.style.display = 'none';
-                });
+                if (index === -1) {
+                    tagsArray.push(tagId);
+                } else {
+                    tagsArray.splice(index, 1);
+                }
                 
-                closeTimerModal.addEventListener('click', () => {
-                    timerModal.style.display = 'none';
-                });
-                
-                closeTableModal.addEventListener('click', () => {
-                    tableModal.style.display = 'none';
-                });
-                
-                closeTableRowModal.addEventListener('click', () => {
-                    tableRowModal.style.display = 'none';
-                });
-                
-                saveSettingsBtn.addEventListener('click', () => {
-                    saveSettingsToFirebase();
-                    settingsModal.style.display = 'none';
-                });
-                
-                saveTimerBtn.addEventListener('click', saveTimer);
-                saveTableBtn.addEventListener('click', saveTable);
-                saveTableRowBtn.addEventListener('click', saveTableRow);
-                
-                deleteTimerBtn.addEventListener('click', () => {
-                    if (currentEditTimerId) {
-                        deleteTimer(currentEditTimerId);
-                    }
-                });
-                
-                deleteTableBtn.addEventListener('click', () => {
-                    if (currentEditTableId) {
-                        deleteTable(currentEditTableId);
-                    }
-                });
-                
-                deleteTableRowBtn.addEventListener('click', () => {
-                    if (currentEditRowId && currentTableIdForRow) {
-                        deleteTableRow(currentTableIdForRow, currentEditRowId);
-                    }
-                });
-                
-                // Close modals when clicking outside
-                window.addEventListener('click', (e) => {
-                    if (e.target === settingsModal) {
-                        settingsModal.style.display = 'none';
-                    }
-                    if (e.target === timerModal) {
-                        timerModal.style.display = 'none';
-                    }
-                    if (e.target === tableModal) {
-                        tableModal.style.display = 'none';
-                    }
-                    if (e.target === tableRowModal) {
-                        tableRowModal.style.display = 'none';
+                // Update UI
+                container.querySelectorAll('.tag-option').forEach(option => {
+                    if (tagsArray.includes(option.dataset.id)) {
+                        option.classList.add('selected');
+                    } else {
+                        option.classList.remove('selected');
                     }
                 });
             }
             
-            // Set up tab navigation
-            function setupTabNavigation() {
-                timersTabBtn.addEventListener('click', () => {
-                    timersTabBtn.classList.add('active');
-                    tablesTabBtn.classList.remove('active');
-                    timersTab.classList.add('active');
-                    tablesTab.classList.remove('active');
-                });
+            // Search tables by title
+            function searchTables() {
+                const searchTerm = tablesSearchInput.value.toLowerCase();
+                const tableCards = document.querySelectorAll('.table-card:not(.add-table-btn)');
                 
-                tablesTabBtn.addEventListener('click', () => {
-                    tablesTabBtn.classList.add('active');
-                    timersTabBtn.classList.remove('active');
-                    tablesTab.classList.add('active');
-                    timersTab.classList.remove('active');
-                });
-            }
-            
-            // Set up search functionality
-            function setupSearch() {
-                timerSearchInput.addEventListener('input', (e) => {
-                    timerSearchTerm = e.target.value.toLowerCase();
-                    renderTimers();
-                });
-                
-                tableSearchInput.addEventListener('input', (e) => {
-                    tableSearchTerm = e.target.value.toLowerCase();
-                    renderTables();
-                });
-            }
-            
-            // Load settings from Firebase
-            function loadSettings() {
-                database.ref('settings').once('value').then((snapshot) => {
-                    const settings = snapshot.val() || {};
-                    
-                    // Apply theme
-                    currentTheme = settings.themeColor || '#4a6bff';
-                    applyTheme(currentTheme);
-                    
-                    // Set theme in select
-                    if (settings.themeColor) {
-                        const option = Array.from(themeColorSelect.options).find(opt => opt.value === settings.themeColor);
-                        if (option) option.selected = true;
+                tableCards.forEach(card => {
+                    const title = card.querySelector('.table-title').textContent.toLowerCase();
+                    if (title.includes(searchTerm)) {
+                        card.style.display = 'flex';
+                    } else {
+                        card.style.display = 'none';
                     }
-                    
-                    // Apply dark mode
-                    darkMode = settings.darkMode || false;
-                    setDarkMode(darkMode);
-                    darkModeSelect.value = darkMode ? 'dark' : 'light';
                 });
             }
             
-            // Save settings to Firebase
-            function saveSettingsToFirebase() {
-                const settings = {
-                    themeColor: themeColorSelect.value,
-                    darkMode: darkModeSelect.value === 'dark'
-                };
-                
-                database.ref('settings').set(settings)
-                    .then(() => {
-                        console.log('Settings saved successfully');
-                        applyTheme(settings.themeColor);
-                        setDarkMode(settings.darkMode);
-                    })
-                    .catch((error) => {
-                        console.error('Error saving settings:', error);
-                    });
+            // Toggle between timer and table views
+            function toggleView(view) {
+                if (view === 'timer') {
+                    timerViewBtn.classList.add('active');
+                    tableViewBtn.classList.remove('active');
+                    timerView.classList.add('active');
+                    tableView.classList.remove('active');
+                } else {
+                    timerViewBtn.classList.remove('active');
+                    tableViewBtn.classList.add('active');
+                    timerView.classList.remove('active');
+                    tableView.classList.add('active');
+                }
             }
             
             // Load timers from Firebase
             function loadTimers() {
+                syncStatus.textContent = "Loading timers...";
                 database.ref('timers').on('value', (snapshot) => {
-                    const timersData = snapshot.val() || {};
-                    
-                    // Convert object to array
-                    timers = Object.keys(timersData).map(key => {
-                        return {
-                            id: key,
-                            ...timersData[key]
-                        };
-                    });
-                    
-                    // Only render timers if the container is empty
-                    if (timersContainer.children.length <= 1) { // 1 for the "Add Timer" button
+                    const data = snapshot.val();
+                    if (data) {
+                        timers = Object.values(data);
                         renderTimers();
+                        syncStatus.textContent = "Timers loaded successfully";
+                        setTimeout(() => syncStatus.textContent = "", 2000);
+                    } else {
+                        timers = [];
+                        renderTimers();
+                        syncStatus.textContent = "No timers found";
+                        setTimeout(() => syncStatus.textContent = "", 2000);
                     }
+                }, (error) => {
+                    console.error("Error loading timers:", error);
+                    syncStatus.textContent = "Error loading timers";
+                    setTimeout(() => syncStatus.textContent = "", 2000);
                 });
             }
             
             // Load tables from Firebase
             function loadTables() {
+                tableSyncStatus.textContent = "Loading tables...";
                 database.ref('tables').on('value', (snapshot) => {
-                    const tablesData = snapshot.val() || {};
-                    
-                    // Convert object to array
-                    tables = Object.keys(tablesData).map(key => {
-                        return {
-                            id: key,
-                            name: tablesData[key].name,
-                            icon: tablesData[key].icon || '',
-                            rows: tablesData[key].rows || {}
-                        };
-                    });
-                    
-                    renderTables();
+                    const data = snapshot.val();
+                    if (data) {
+                        tables = Object.values(data);
+                        renderTables();
+                        tableSyncStatus.textContent = "Tables loaded successfully";
+                        setTimeout(() => tableSyncStatus.textContent = "", 2000);
+                    } else {
+                        tables = [];
+                        renderTables();
+                        tableSyncStatus.textContent = "No tables found";
+                        setTimeout(() => tableSyncStatus.textContent = "", 2000);
+                    }
+                }, (error) => {
+                    console.error("Error loading tables:", error);
+                    tableSyncStatus.textContent = "Error loading tables";
+                    setTimeout(() => tableSyncStatus.textContent = "", 2000);
                 });
             }
             
-            // Save timer to Firebase
-            function saveTimerToFirebase(timer) {
-                if (currentEditTimerId) {
-                    // Update existing timer
-                    const updates = {};
-                    updates[`/timers/${timer.id}`] = timer;
-                    
-                    return database.ref().update(updates);
-                } else {
-                    // Add new timer
-                    const newTimerRef = database.ref('timers').push();
-                    timer.id = newTimerRef.key;
-                    
-                    return newTimerRef.set(timer);
-                }
+            // Save timers to Firebase
+            function saveTimers() {
+                syncStatus.textContent = "Saving timers...";
+                
+                // Convert array to object with IDs as keys
+                const timersObj = {};
+                timers.forEach(timer => {
+                    timersObj[timer.id] = timer;
+                });
+                
+                database.ref('timers').set(timersObj)
+                    .then(() => {
+                        syncStatus.textContent = "Timers saved successfully";
+                        setTimeout(() => syncStatus.textContent = "", 2000);
+                    })
+                    .catch((error) => {
+                        console.error("Error saving timers:", error);
+                        syncStatus.textContent = "Error saving timers";
+                        setTimeout(() => syncStatus.textContent = "", 2000);
+                    });
+            }
+            
+            // Save tables to Firebase
+            function saveTables() {
+                tableSyncStatus.textContent = "Saving tables...";
+                
+                // Convert array to object with IDs as keys
+                const tablesObj = {};
+                tables.forEach(table => {
+                    tablesObj[table.id] = table;
+                });
+                
+                database.ref('tables').set(tablesObj)
+                    .then(() => {
+                        tableSyncStatus.textContent = "Tables saved successfully";
+                        setTimeout(() => tableSyncStatus.textContent = "", 2000);
+                    })
+                    .catch((error) => {
+                        console.error("Error saving tables:", error);
+                        tableSyncStatus.textContent = "Error saving tables";
+                        setTimeout(() => tableSyncStatus.textContent = "", 2000);
+                    });
             }
             
             // Delete timer from Firebase
             function deleteTimerFromFirebase(timerId) {
-                return database.ref(`timers/${timerId}`).remove();
-            }
-            
-            // Save table to Firebase
-            function saveTableToFirebase(table) {
-                if (currentEditTableId) {
-                    // Update existing table
-                    const updates = {};
-                    updates[`/tables/${table.id}/name`] = table.name;
-                    updates[`/tables/${table.id}/icon`] = table.icon || '';
-                    
-                    return database.ref().update(updates);
-                } else {
-                    // Add new table
-                    const newTableRef = database.ref('tables').push();
-                    table.id = newTableRef.key;
-                    
-                    return newTableRef.set({
-                        name: table.name,
-                        icon: table.icon || '',
-                        rows: {}
+                syncStatus.textContent = "Deleting timer...";
+                database.ref(`timers/${timerId}`).remove()
+                    .then(() => {
+                        syncStatus.textContent = "Timer deleted successfully";
+                        setTimeout(() => syncStatus.textContent = "", 2000);
+                    })
+                    .catch((error) => {
+                        console.error("Error deleting timer:", error);
+                        syncStatus.textContent = "Error deleting timer";
+                        setTimeout(() => syncStatus.textContent = "", 2000);
                     });
-                }
             }
             
             // Delete table from Firebase
             function deleteTableFromFirebase(tableId) {
-                return database.ref(`tables/${tableId}`).remove();
-            }
-            
-            // Save table row to Firebase
-            function saveTableRowToFirebase(tableId, row) {
-                if (currentEditRowId) {
-                    // Update existing row
-                    const updates = {};
-                    updates[`/tables/${tableId}/rows/${row.id}`] = row;
-                    
-                    return database.ref().update(updates);
-                } else {
-                    // Add new row
-                    const newRowRef = database.ref(`tables/${tableId}/rows`).push();
-                    row.id = newRowRef.key;
-                    
-                    return newRowRef.set(row);
-                }
-            }
-            
-            // Delete table row from Firebase
-            function deleteTableRowFromFirebase(tableId, rowId) {
-                return database.ref(`tables/${tableId}/rows/${rowId}`).remove();
+                tableSyncStatus.textContent = "Deleting table...";
+                database.ref(`tables/${tableId}`).remove()
+                    .then(() => {
+                        tableSyncStatus.textContent = "Table deleted successfully";
+                        setTimeout(() => tableSyncStatus.textContent = "", 2000);
+                    })
+                    .catch((error) => {
+                        console.error("Error deleting table:", error);
+                        tableSyncStatus.textContent = "Error deleting table";
+                        setTimeout(() => tableSyncStatus.textContent = "", 2000);
+                    });
             }
             
             // Toggle dark mode
@@ -1166,9 +1470,10 @@
                     document.body.classList.remove('dark-mode');
                 }
                 darkMode = enabled;
+                localStorage.setItem('darkMode', enabled);
             }
             
-            // Update background preview
+            // Update background previews
             function updateBgPreview() {
                 const url = bgImageInput.value.trim();
                 if (url) {
@@ -1179,18 +1484,6 @@
                 }
             }
             
-            // Update icon preview
-            function updateIconPreview() {
-                const url = rowIconInput.value.trim();
-                if (url) {
-                    iconPreview.style.backgroundImage = `url('${url}')`;
-                } else {
-                    iconPreview.style.backgroundImage = 'none';
-                    iconPreview.style.backgroundColor = currentTheme;
-                }
-            }
-            
-            // Update table icon preview
             function updateTableIconPreview() {
                 const url = tableIconInput.value.trim();
                 if (url) {
@@ -1201,7 +1494,17 @@
                 }
             }
             
-            // Validate URL format for timer
+            function updateTableBgPreview() {
+                const url = tableBgInput.value.trim();
+                if (url) {
+                    tableBgPreview.style.backgroundImage = `url('${url}')`;
+                } else {
+                    tableBgPreview.style.backgroundImage = 'none';
+                    tableBgPreview.style.backgroundColor = currentTheme;
+                }
+            }
+            
+            // Validate URL formats
             function validateUrl() {
                 const url = subtitleInput.value.trim();
                 if (!url) {
@@ -1222,259 +1525,63 @@
                 }
             }
             
-            // Validate URL format for table row
-            function validateRowUrl() {
-                const url = rowLinkInput.value.trim();
+            function validateModalEntryUrl() {
+                const url = modalEntryLinkInput.value.trim();
                 if (!url) {
-                    rowLinkValidation.textContent = 'Please enter a valid URL';
-                    rowLinkValidation.className = 'link-invalid';
+                    modalEntryLinkValidation.textContent = 'Leave empty for no link';
+                    modalEntryLinkValidation.className = 'link-valid';
                     return false;
                 }
                 
                 try {
                     new URL(url);
-                    rowLinkValidation.textContent = 'Valid URL';
-                    rowLinkValidation.className = 'link-valid';
+                    modalEntryLinkValidation.textContent = 'Valid URL';
+                    modalEntryLinkValidation.className = 'link-valid';
                     return true;
                 } catch {
-                    rowLinkValidation.textContent = 'Please enter a valid URL (starting with http:// or https://)';
-                    rowLinkValidation.className = 'link-invalid';
+                    modalEntryLinkValidation.textContent = 'Please enter a valid URL (starting with http:// or https://)';
+                    modalEntryLinkValidation.className = 'link-invalid';
                     return false;
                 }
             }
             
-            // Filter timers based on search term
-            function filterTimers() {
-                if (!timerSearchTerm) return timers;
-                
-                return timers.filter(timer => {
-                    return (
-                        timer.tag.toLowerCase().includes(timerSearchTerm) ||
-                        timer.title.toLowerCase().includes(timerSearchTerm) ||
-                        (timer.link && timer.link.toLowerCase().includes(timerSearchTerm))
-                    );
-                });
-            }
-            
-            // Filter tables based on search term
-            function filterTables() {
-                if (!tableSearchTerm) return tables;
-                
-                return tables.filter(table => {
-                    // Check if table name matches
-                    if (table.name.toLowerCase().includes(tableSearchTerm)) {
-                        return true;
-                    }
-                    
-                    // Check if any row matches
-                    if (table.rows) {
-                        const rows = Object.values(table.rows);
-                        return rows.some(row => 
-                            row.title.toLowerCase().includes(tableSearchTerm) ||
-                            row.link.toLowerCase().includes(tableSearchTerm)
-                        );
-                    }
-                    
-                    return false;
-                });
-            }
-            
-            // Render all timers
+            // Render all timers with started timers at the bottom
             function renderTimers() {
-                const filteredTimers = filterTimers();
+                // Clear existing timers except the add button
+                const existingTimers = Array.from(timersContainer.children).filter(
+                    child => child !== addTimerBtn
+                );
+                existingTimers.forEach(timer => timer.remove());
                 
-                timersContainer.innerHTML = '';
+                // Separate running and non-running timers
+                const runningTimers = timers.filter(timer => timer.isRunning);
+                const nonRunningTimers = timers.filter(timer => !timer.isRunning);
                 
-                if (filteredTimers.length === 0 && timerSearchTerm) {
-                    const noResults = document.createElement('div');
-                    noResults.className = 'no-results';
-                    noResults.textContent = 'No timers found matching your search';
-                    timersContainer.appendChild(noResults);
-                    return;
-                }
-                
-                filteredTimers.forEach(timer => {
+                // First render non-running timers
+                nonRunningTimers.forEach(timer => {
                     const timerElement = createTimerElement(timer);
-                    timersContainer.appendChild(timerElement);
+                    timersContainer.insertBefore(timerElement, addTimerBtn);
                 });
                 
-                // Add the "Add Timer" button at the end
-                timersContainer.appendChild(addTimerBtn);
+                // Then render running timers
+                runningTimers.forEach(timer => {
+                    const timerElement = createTimerElement(timer);
+                    timersContainer.insertBefore(timerElement, addTimerBtn);
+                });
             }
             
             // Render all tables
             function renderTables() {
-                const filteredTables = filterTables();
+                // Clear existing tables except the add button
+                const existingTables = Array.from(tablesContainer.children).filter(
+                    child => child !== addTableBtn
+                );
+                existingTables.forEach(table => table.remove());
                 
-                tablesContainer.innerHTML = '';
-                
-                if (filteredTables.length === 0) {
-                    if (tableSearchTerm) {
-                        const noResults = document.createElement('div');
-                        noResults.className = 'no-results';
-                        noResults.textContent = 'No tables found matching your search';
-                        tablesContainer.appendChild(noResults);
-                    } else {
-                        const noTablesMessage = document.createElement('p');
-                        noTablesMessage.textContent = 'No tables found. Click "Add New Table" to create one.';
-                        tablesContainer.appendChild(noTablesMessage);
-                    }
-                }
-                
-                filteredTables.forEach(table => {
-                    const tableSection = document.createElement('div');
-                    tableSection.className = 'table-section';
-                    tableSection.dataset.id = table.id;
-                    
-                    // Convert rows object to array
-                    const rowsArray = table.rows ? Object.keys(table.rows).map(key => {
-                        return {
-                            id: key,
-                            ...table.rows[key]
-                        };
-                    }) : [];
-                    
-                    // Filter rows if there's a search term
-                    const filteredRows = tableSearchTerm ? 
-                        rowsArray.filter(row => 
-                            row.title.toLowerCase().includes(tableSearchTerm) ||
-                            row.link.toLowerCase().includes(tableSearchTerm)
-                        ) : 
-                        rowsArray;
-                    
-                    // Create table icon HTML
-                    const tableIconHtml = table.icon ? 
-                        `<div class="table-icon" style="background-image: url('${table.icon}')"></div>` : 
-                        `<div class="table-icon" style="background-color: ${currentTheme}"></div>`;
-                    
-                    tableSection.innerHTML = `
-                        <div class="table-header">
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                ${tableIconHtml}
-                                <h3 class="table-title">${table.name}</h3>
-                            </div>
-                            <div class="table-actions">
-                                <button class="edit-table-btn" data-id="${table.id}">
-                                    <i class="fas fa-edit"></i> Edit
-                                </button>
-                                <button class="add-row-to-table-btn" data-id="${table.id}">
-                                    <i class="fas fa-plus"></i> Add Link
-                                </button>
-                                <button class="delete-table-btn" data-id="${table.id}">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        </div>
-                        <div class="data-table-container">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>No</th>
-                                        <th>Icon</th>
-                                        <th>Title</th>
-                                        <th>Link</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="table-${table.id}-body">
-                                    <!-- Rows will be added here dynamically -->
-                                </tbody>
-                            </table>
-                        </div>
-                    `;
-                    
-                    tablesContainer.appendChild(tableSection);
-                    
-                    // Render rows for this table
-                    const tableBody = document.getElementById(`table-${table.id}-body`);
-                    renderTableRows(table.id, filteredRows, tableBody);
-                });
-                
-                // Add the "Add Table" button at the end
-                const addTableBtnContainer = document.createElement('div');
-                addTableBtnContainer.className = 'add-table-btn-container';
-                addTableBtnContainer.appendChild(addTableBtn);
-                tablesContainer.appendChild(addTableBtnContainer);
-                
-                // Add event listeners to table buttons
-                document.querySelectorAll('.edit-table-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const tableId = e.currentTarget.dataset.id;
-                        openEditTableModal(tableId);
-                    });
-                });
-                
-                document.querySelectorAll('.add-row-to-table-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const tableId = e.currentTarget.dataset.id;
-                        openAddTableRowModal(tableId);
-                    });
-                });
-                
-                document.querySelectorAll('.delete-table-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const tableId = e.currentTarget.dataset.id;
-                        deleteTable(tableId);
-                    });
-                });
-            }
-            
-            // Render rows for a specific table
-            function renderTableRows(tableId, rows, tableBodyElement) {
-                tableBodyElement.innerHTML = '';
-                
-                if (rows.length === 0) {
-                    const emptyRow = document.createElement('tr');
-                    emptyRow.innerHTML = `
-                        <td colspan="5" style="text-align: center; padding: 20px;">
-                            ${tableSearchTerm ? 'No links found matching your search' : 'No links found. Click "Add Link" to add one.'}
-                        </td>
-                    `;
-                    tableBodyElement.appendChild(emptyRow);
-                    return;
-                }
-                
-                rows.forEach((row, index) => {
-                    const rowElement = document.createElement('tr');
-                    rowElement.dataset.id = row.id;
-                    
-                    const iconHtml = row.icon ? 
-                        `<div class="table-icon" style="background-image: url('${row.icon}')"></div>` : 
-                        `<div class="table-icon" style="background-color: ${currentTheme}"></div>`;
-                    
-                    rowElement.innerHTML = `
-                        <td>${index + 1}</td>
-                        <td>${iconHtml}</td>
-                        <td>${row.title}</td>
-                        <td><a href="${row.link}" target="_blank" class="table-link">${row.link}</a></td>
-                        <td>
-                            <button class="edit-row-btn" data-table="${tableId}" data-id="${row.id}">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>
-                            <button class="delete-row-btn" data-table="${tableId}" data-id="${row.id}">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </td>
-                    `;
-                    
-                    tableBodyElement.appendChild(rowElement);
-                });
-                
-                // Add event listeners to row buttons
-                tableBodyElement.querySelectorAll('.edit-row-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const tableId = e.currentTarget.dataset.table;
-                        const rowId = e.currentTarget.dataset.id;
-                        openEditTableRowModal(tableId, rowId);
-                    });
-                });
-                
-                tableBodyElement.querySelectorAll('.delete-row-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        const tableId = e.currentTarget.dataset.table;
-                        const rowId = e.currentTarget.dataset.id;
-                        deleteTableRow(tableId, rowId);
-                    });
+                // Render all tables
+                tables.forEach(table => {
+                    const tableElement = createTableElement(table);
+                    tablesContainer.insertBefore(tableElement, addTableBtn);
                 });
             }
             
@@ -1492,7 +1599,7 @@
                     
                     if (remainingTime <= 0) {
                         timer.isRunning = false;
-                        saveTimerToFirebase(timer);
+                        saveTimers();
                     }
                 }
                 
@@ -1502,6 +1609,33 @@
                 let titleContent = timer.title;
                 if (timer.link) {
                     titleContent = `<a href="${timer.link}" target="_blank">${timer.title}</a>`;
+                }
+                
+                // Create tags if available
+                let tagsContent = '';
+                if (timer.tags && timer.tags.length > 0) {
+                    tagsContent = `<div class="timer-tags">${timer.tags.map(tag => {
+                        const tagInfo = tagOptions.find(t => t.id === tag);
+                        return `<span class="timer-tag-badge">${tagInfo ? tagInfo.id : tag}</span>`;
+                    }).join('')}</div>`;
+                }
+                
+                // Format last checked time if available
+                let lastCheckedHtml = '';
+                if (timer.lastChecked) {
+                    const lastChecked = new Date(timer.lastChecked);
+                    const options = { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZone: 'Asia/Jakarta'
+                    };
+                    const formattedDate = lastChecked.toLocaleDateString('id-ID', options);
+                    lastCheckedHtml = `<div class="last-checked">Terakhir dimulai: ${formattedDate}</div>`;
                 }
                 
                 // Set background style
@@ -1522,6 +1656,8 @@
                             </div>
                             <div class="timer-tag">${timer.tag}</div>
                             <div class="timer-title">${titleContent}</div>
+                            ${tagsContent}
+                            ${lastCheckedHtml}
                         </div>
                     </div>
                     <div class="timer-display">
@@ -1540,62 +1676,133 @@
                 const deleteBtn = timerElement.querySelector('.delete-timer-btn');
                 
                 startBtn.addEventListener('click', () => {
-                    if (confirm('Are you sure you want to start this timer?')) {
-                        startTimer(timer.id);
-                        
-                        // Update UI immediately
-                        startBtn.disabled = true;
-                        resetBtn.disabled = false;
-                        
-                        const timerDisplay = timerElement.querySelector('.timer');
-                        startCountdown(timerDisplay, timer.duration, Date.now(), () => {
-                            // Callback when timer finishes
-                            startBtn.disabled = false;
-                            resetBtn.disabled = true;
-                        });
-                    }
+                    startTimer(timer.id);
+                    // Move this timer to the bottom when started
+                    renderTimers();
                 });
-                
-                resetBtn.addEventListener('click', () => {
-                    resetTimer(timer.id);
-                    
-                    // Update UI immediately
-                    startBtn.disabled = false;
-                    resetBtn.disabled = true;
-                    
-                    const { hours, minutes, seconds } = msToTime(timer.duration);
-                    timerElement.querySelector('.timer').textContent = formatTime(hours, minutes, seconds);
-                });
-                
+                resetBtn.addEventListener('click', () => resetTimer(timer.id));
                 editBtn.addEventListener('click', () => openEditTimerModal(timer.id));
                 deleteBtn.addEventListener('click', () => deleteTimer(timer.id));
                 
                 // If timer is running, start the countdown
                 if (timer.isRunning) {
                     const timerDisplay = timerElement.querySelector('.timer');
-                    startCountdown(timerDisplay, timer.duration, timer.startTime, () => {
-                        // Callback when timer finishes
-                        const startBtn = timerElement.querySelector('.start-btn');
-                        const resetBtn = timerElement.querySelector('.reset-btn');
-                        startBtn.disabled = false;
-                        resetBtn.disabled = true;
-                    });
+                    startCountdown(timerDisplay, timer.duration, timer.startTime);
                 }
                 
                 return timerElement;
             }
             
+            // Create a table card element
+            function createTableElement(table) {
+                const tableElement = document.createElement('div');
+                tableElement.className = 'table-card';
+                tableElement.dataset.id = table.id;
+                
+                // Set background style
+                let headerStyle = '';
+                if (table.bgImage) {
+                    headerStyle = `background-image: url('${table.bgImage}')`;
+                } else {
+                    headerStyle = `background-color: ${table.color || currentTheme}`;
+                }
+                
+                // Set icon style
+                let iconStyle = '';
+                if (table.icon) {
+                    iconStyle = `background-image: url('${table.icon}')`;
+                } else {
+                    iconStyle = `background-color: ${table.color || currentTheme}`;
+                }
+                
+                // Format last checked time if available
+                let lastCheckedHtml = '';
+                if (table.lastChecked) {
+                    const lastChecked = new Date(table.lastChecked);
+                    const options = { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                        timeZone: 'Asia/Jakarta'
+                    };
+                    const formattedDate = lastChecked.toLocaleDateString('id-ID', options);
+                    lastCheckedHtml = `<div class="last-checked">Terakhir dibuka: ${formattedDate}</div>`;
+                }
+                
+                tableElement.innerHTML = `
+                    <div class="table-header" style="${headerStyle}">
+                        <div class="table-header-overlay"></div>
+                        <div class="table-header-content">
+                            <div class="table-actions">
+                                <button class="table-action-btn edit-table-btn"><i class="fas fa-edit"></i></button>
+                                <button class="table-action-btn delete-table-btn"><i class="fas fa-trash"></i></button>
+                                <button class="table-action-btn check-btn check-table-btn"><i class="fas fa-check"></i></button>
+                            </div>
+                            <div class="table-icon" style="${iconStyle}"></div>
+                            <div class="table-title">${table.title}</div>
+                            ${lastCheckedHtml}
+                        </div>
+                    </div>
+                    <div class="table-content">
+                        <div class="table-entries">
+                            ${table.entries.slice(0, 5).map((entry, index) => `
+                                <div class="table-entry">
+                                    <div class="entry-number">${index + 1}</div>
+                                    ${entry.icon ? `<div class="entry-icon" style="background-image: url('${entry.icon}')"></div>` : ''}
+                                    <div class="entry-title">
+                                        ${entry.link ? `<a href="${entry.link}" target="_blank">${entry.title}</a>` : entry.title}
+                                    </div>
+                                    ${entry.tags && entry.tags.length > 0 ? `
+                                        <div class="entry-tags">
+                                            ${entry.tags.map(tag => {
+                                                const tagInfo = tagOptions.find(t => t.id === tag);
+                                                return `<span class="entry-tag">${tagInfo ? tagInfo.id : tag}</span>`;
+                                            }).join('')}
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `).join('')}
+                            ${table.entries.length > 5 ? `<div class="table-entry">+ ${table.entries.length - 5} more entries</div>` : ''}
+                            ${table.entries.length === 0 ? `<p style="text-align: center; color: var(--light-text);">No entries</p>` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                // Add event listeners
+                const editBtn = tableElement.querySelector('.edit-table-btn');
+                const deleteBtn = tableElement.querySelector('.delete-table-btn');
+                const checkBtn = tableElement.querySelector('.check-table-btn');
+                
+                editBtn.addEventListener('click', () => openEditTableModal(table.id));
+                deleteBtn.addEventListener('click', () => deleteTable(table.id));
+                checkBtn.addEventListener('click', () => markTableAsChecked(table.id));
+                
+                return tableElement;
+            }
+            
+            // Mark table as checked with current timestamp
+            function markTableAsChecked(tableId) {
+                const tableIndex = tables.findIndex(t => t.id === tableId);
+                if (tableIndex === -1) return;
+                
+                tables[tableIndex].lastChecked = Date.now();
+                saveTables();
+                renderTables();
+            }
+            
             // Timer functions
             function startTimer(timerId) {
                 const timer = timers.find(t => t.id === timerId);
-                if (!timer) return;
-                
-                // If timer is already running, do nothing
-                if (timer.isRunning) return;
+                if (!timer || timer.isRunning) return;
                 
                 timer.isRunning = true;
                 timer.startTime = Date.now();
-                saveTimerToFirebase(timer);
+                timer.lastChecked = Date.now(); // Update last checked time
+                saveTimers();
             }
             
             function resetTimer(timerId) {
@@ -1603,10 +1810,12 @@
                 if (!timer || !timer.isRunning) return;
                 
                 timer.isRunning = false;
-                saveTimerToFirebase(timer);
+                saveTimers();
+                
+                renderTimers();
             }
             
-            function startCountdown(timerDisplay, duration, startTime, onComplete) {
+            function startCountdown(timerDisplay, duration, startTime) {
                 const endTime = startTime + duration;
                 
                 function update() {
@@ -1614,7 +1823,6 @@
                     
                     if (remaining <= 0) {
                         timerDisplay.textContent = '00:00:00';
-                        if (onComplete) onComplete();
                         return;
                     }
                     
@@ -1627,7 +1835,7 @@
                 update();
             }
             
-            // Modal functions for timer
+            // Modal functions
             function openAddTimerModal() {
                 currentEditTimerId = null;
                 timerModalTitle.textContent = 'Add New Timer';
@@ -1642,6 +1850,12 @@
                 linkValidation.textContent = 'Leave empty for no link';
                 linkValidation.className = 'link-valid';
                 updateBgPreview();
+                
+                // Reset tag selection
+                selectedTags = [];
+                document.querySelectorAll('#timerTagSelector .tag-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
                 
                 timerModal.style.display = 'flex';
             }
@@ -1673,17 +1887,32 @@
                     linkValidation.className = 'link-valid';
                 }
                 
+                // Set tags if they exist
+                selectedTags = timer.tags ? [...timer.tags] : [];
+                document.querySelectorAll('#timerTagSelector .tag-option').forEach(option => {
+                    if (selectedTags.includes(option.dataset.id)) {
+                        option.classList.add('selected');
+                    } else {
+                        option.classList.remove('selected');
+                    }
+                });
+                
                 timerModal.style.display = 'flex';
             }
             
-            // Modal functions for table
             function openAddTableModal() {
                 currentEditTableId = null;
                 tableModalTitle.textContent = 'Add New Table';
-                tableNameInput.value = '';
+                tableTitleInput.value = '';
                 tableIconInput.value = '';
+                tableBgInput.value = '';
+                currentEntries = [];
                 deleteTableBtn.style.display = 'none';
                 updateTableIconPreview();
+                updateTableBgPreview();
+                
+                // Clear entries list
+                entriesList.innerHTML = '<p style="text-align: center; color: var(--light-text);">No entries yet</p>';
                 
                 tableModal.style.display = 'flex';
             }
@@ -1694,52 +1923,128 @@
                 
                 currentEditTableId = tableId;
                 tableModalTitle.textContent = 'Edit Table';
-                tableNameInput.value = table.name;
+                
+                tableTitleInput.value = table.title;
                 tableIconInput.value = table.icon || '';
+                tableBgInput.value = table.bgImage || '';
+                currentEntries = [...table.entries];
                 deleteTableBtn.style.display = 'block';
                 updateTableIconPreview();
+                updateTableBgPreview();
+                
+                // Populate entries list
+                renderEntriesList();
                 
                 tableModal.style.display = 'flex';
             }
             
-            // Modal functions for table row
-            function openAddTableRowModal(tableId) {
-                currentEditRowId = null;
-                currentTableIdForRow = tableId;
-                tableRowModalTitle.textContent = 'Add New Link';
-                rowTitleInput.value = '';
-                rowLinkInput.value = '';
-                rowIconInput.value = '';
-                deleteTableRowBtn.style.display = 'none';
-                rowLinkValidation.textContent = 'Please enter a valid URL (starting with http:// or https://)';
-                rowLinkValidation.className = 'link-invalid';
-                updateIconPreview();
+            function openEntryModal(entry, index) {
+                currentEditEntryIndex = index;
+                entryModalTitle.textContent = index === null ? 'Add New Entry' : 'Edit Entry';
                 
-                tableRowModal.style.display = 'flex';
-            }
-            
-            function openEditTableRowModal(tableId, rowId) {
-                const table = tables.find(t => t.id === tableId);
-                if (!table || !table.rows) return;
+                modalEntryTitleInput.value = entry?.title || '';
+                modalEntryLinkInput.value = entry?.link || '';
+                modalEntryIconInput.value = entry?.icon || '';
                 
-                const row = table.rows[rowId];
-                if (!row) return;
-                
-                currentEditRowId = rowId;
-                currentTableIdForRow = tableId;
-                tableRowModalTitle.textContent = 'Edit Link';
-                
-                rowTitleInput.value = row.title;
-                rowLinkInput.value = row.link;
-                rowIconInput.value = row.icon || '';
-                deleteTableRowBtn.style.display = 'block';
-                updateIconPreview();
-                
-                if (row.link) {
-                    validateRowUrl();
+                if (entry?.link) {
+                    modalEntryLinkValidation.textContent = 'Valid URL';
+                    modalEntryLinkValidation.className = 'link-valid';
+                } else {
+                    modalEntryLinkValidation.textContent = 'Leave empty for no link';
+                    modalEntryLinkValidation.className = 'link-valid';
                 }
                 
-                tableRowModal.style.display = 'flex';
+                // Set tags if they exist
+                modalSelectedTags = entry?.tags ? [...entry.tags] : [];
+                document.querySelectorAll('#modalTagSelector .tag-option').forEach(option => {
+                    if (modalSelectedTags.includes(option.dataset.id)) {
+                        option.classList.add('selected');
+                    } else {
+                        option.classList.remove('selected');
+                    }
+                });
+                
+                entryModal.style.display = 'flex';
+            }
+            
+            function renderEntriesList() {
+                if (currentEntries.length === 0) {
+                    entriesList.innerHTML = '<p style="text-align: center; color: var(--light-text);">No entries yet</p>';
+                    return;
+                }
+                
+                entriesList.innerHTML = '';
+                currentEntries.forEach((entry, index) => {
+                    const entryElement = document.createElement('div');
+                    entryElement.className = 'entry-item';
+                    entryElement.innerHTML = `
+                        <div class="entry-item-number">${index + 1}</div>
+                        ${entry.tags && entry.tags.length > 0 ? 
+                            entry.tags.map(tag => {
+                                const tagInfo = tagOptions.find(t => t.id === tag);
+                                return `<div class="tag-badge">${tagInfo ? tagInfo.id : tag}</div>`;
+                            }).join('') : ''}
+                        <div class="entry-item-title">${entry.title}</div>
+                        <div class="entry-item-actions">
+                            <button class="entry-item-btn edit-entry-btn" data-index="${index}"><i class="fas fa-edit"></i></button>
+                            <button class="entry-item-btn delete-entry-btn" data-index="${index}"><i class="fas fa-trash"></i></button>
+                        </div>
+                    `;
+                    
+                    entriesList.appendChild(entryElement);
+                    
+                    // Add event listeners
+                    const editBtn = entryElement.querySelector('.edit-entry-btn');
+                    const deleteBtn = entryElement.querySelector('.delete-entry-btn');
+                    
+                    editBtn.addEventListener('click', () => {
+                        openEntryModal(currentEntries[index], index);
+                    });
+                    deleteBtn.addEventListener('click', () => deleteEntry(index));
+                });
+            }
+            
+            function saveEntry() {
+                const title = modalEntryTitleInput.value.trim();
+                const link = modalEntryLinkInput.value.trim();
+                const icon = modalEntryIconInput.value.trim();
+                
+                if (!title) {
+                    alert('Please enter a title for the entry');
+                    return;
+                }
+                
+                if (link && !validateModalEntryUrl()) {
+                    alert('Please enter a valid URL or leave the field empty');
+                    return;
+                }
+                
+                const newEntry = {
+                    title,
+                    link: link || '',
+                    icon: icon || '',
+                    tags: [...modalSelectedTags]
+                };
+                
+                if (currentEditEntryIndex === null) {
+                    // Add new entry
+                    currentEntries.push(newEntry);
+                } else {
+                    // Update existing entry
+                    currentEntries[currentEditEntryIndex] = newEntry;
+                }
+                
+                renderEntriesList();
+                closeEntryModal.click();
+            }
+            
+            function deleteEntry(index) {
+                if (index < 0 || index >= currentEntries.length) return;
+                
+                if (confirm('Are you sure you want to delete this entry?')) {
+                    currentEntries.splice(index, 1);
+                    renderEntriesList();
+                }
             }
             
             function saveTimer() {
@@ -1764,147 +2069,97 @@
                 
                 const duration = (hours * 3600 + minutes * 60 + seconds) * 1000;
                 
-                const timerData = {
-                    tag,
-                    title,
-                    link: link || '',
-                    bgImage: bgImage || '',
-                    duration,
-                    color: currentTheme
-                };
-                
                 if (currentEditTimerId) {
                     // Update existing timer
-                    const timer = timers.find(t => t.id === currentEditTimerId);
-                    if (timer) {
-                        timerData.isRunning = timer.isRunning;
-                        timerData.startTime = timer.startTime;
+                    const timerIndex = timers.findIndex(t => t.id === currentEditTimerId);
+                    if (timerIndex !== -1) {
+                        timers[timerIndex] = {
+                            ...timers[timerIndex],
+                            tag,
+                            title,
+                            link: link || '',
+                            bgImage: bgImage || '',
+                            duration,
+                            tags: [...selectedTags]
+                        };
                     }
-                    
-                    saveTimerToFirebase({
-                        id: currentEditTimerId,
-                        ...timerData
-                    }).then(() => {
-                        closeTimerModal.click();
-                    }).catch(error => {
-                        console.error('Error saving timer:', error);
-                        alert('Failed to save timer. Please try again.');
-                    });
                 } else {
                     // Add new timer
-                    timerData.isRunning = false;
-                    
-                    saveTimerToFirebase(timerData)
-                        .then(() => {
-                            closeTimerModal.click();
-                        })
-                        .catch(error => {
-                            console.error('Error saving timer:', error);
-                            alert('Failed to save timer. Please try again.');
-                        });
+                    const newTimer = {
+                        id: Date.now().toString(),
+                        tag,
+                        title,
+                        link: link || '',
+                        bgImage: bgImage || '',
+                        duration,
+                        isRunning: false,
+                        color: currentTheme,
+                        tags: [...selectedTags]
+                    };
+                    timers.push(newTimer);
                 }
+                
+                saveTimers();
+                renderTimers();
+                closeTimerModal.click();
             }
             
             function saveTable() {
-                const name = tableNameInput.value.trim();
+                const title = tableTitleInput.value.trim() || 'New Table';
                 const icon = tableIconInput.value.trim();
+                const bgImage = tableBgInput.value.trim();
                 
-                if (!name) {
-                    alert('Please enter a table name');
+                if (currentEntries.length === 0) {
+                    alert('Please add at least one entry to the table');
                     return;
                 }
-                
-                const tableData = {
-                    name,
-                    icon: icon || ''
-                };
                 
                 if (currentEditTableId) {
-                    tableData.id = currentEditTableId;
+                    // Update existing table
+                    const tableIndex = tables.findIndex(t => t.id === currentEditTableId);
+                    if (tableIndex !== -1) {
+                        tables[tableIndex] = {
+                            ...tables[tableIndex],
+                            title,
+                            icon: icon || '',
+                            bgImage: bgImage || '',
+                            entries: [...currentEntries],
+                            color: currentTheme
+                        };
+                    }
+                } else {
+                    // Add new table
+                    const newTable = {
+                        id: Date.now().toString(),
+                        title,
+                        icon: icon || '',
+                        bgImage: bgImage || '',
+                        entries: [...currentEntries],
+                        color: currentTheme
+                    };
+                    tables.push(newTable);
                 }
                 
-                saveTableToFirebase(tableData)
-                    .then(() => {
-                        closeTableModal.click();
-                    })
-                    .catch(error => {
-                        console.error('Error saving table:', error);
-                        alert('Failed to save table. Please try again.');
-                    });
-            }
-            
-            function saveTableRow() {
-                const title = rowTitleInput.value.trim();
-                const link = rowLinkInput.value.trim();
-                const icon = rowIconInput.value.trim();
-                
-                if (!title) {
-                    alert('Please enter a title');
-                    return;
-                }
-                
-                if (!validateRowUrl()) {
-                    alert('Please enter a valid URL');
-                    return;
-                }
-                
-                if (!currentTableIdForRow) {
-                    alert('No table selected');
-                    return;
-                }
-                
-                const rowData = {
-                    title,
-                    link,
-                    icon: icon || ''
-                };
-                
-                saveTableRowToFirebase(currentTableIdForRow, rowData)
-                    .then(() => {
-                        closeTableRowModal.click();
-                    })
-                    .catch(error => {
-                        console.error('Error saving table row:', error);
-                        alert('Failed to save link. Please try again.');
-                    });
+                saveTables();
+                renderTables();
+                closeTableModal.click();
             }
             
             function deleteTimer(timerId) {
                 if (confirm('Are you sure you want to delete this timer?')) {
-                    deleteTimerFromFirebase(timerId)
-                        .then(() => {
-                            closeTimerModal.click();
-                        })
-                        .catch(error => {
-                            console.error('Error deleting timer:', error);
-                            alert('Failed to delete timer. Please try again.');
-                        });
+                    timers = timers.filter(t => t.id !== timerId);
+                    deleteTimerFromFirebase(timerId);
+                    renderTimers();
+                    closeTimerModal.click();
                 }
             }
             
             function deleteTable(tableId) {
-                if (confirm('Are you sure you want to delete this table and all its links?')) {
-                    deleteTableFromFirebase(tableId)
-                        .then(() => {
-                            closeTableModal.click();
-                        })
-                        .catch(error => {
-                            console.error('Error deleting table:', error);
-                            alert('Failed to delete table. Please try again.');
-                        });
-                }
-            }
-            
-            function deleteTableRow(tableId, rowId) {
-                if (confirm('Are you sure you want to delete this link?')) {
-                    deleteTableRowFromFirebase(tableId, rowId)
-                        .then(() => {
-                            // No need to close modal here as we're not in modal context
-                        })
-                        .catch(error => {
-                            console.error('Error deleting table row:', error);
-                            alert('Failed to delete link. Please try again.');
-                        });
+                if (confirm('Are you sure you want to delete this table?')) {
+                    tables = tables.filter(t => t.id !== tableId);
+                    deleteTableFromFirebase(tableId);
+                    renderTables();
+                    closeTableModal.click();
                 }
             }
             
@@ -1923,8 +2178,90 @@
             
             function applyTheme(color) {
                 document.documentElement.style.setProperty('--primary-color', color);
+                localStorage.setItem('themeColor', color);
                 currentTheme = color;
             }
+            
+            // Save settings
+            function saveSettings() {
+                applyTheme(themeColorSelect.value);
+                setDarkMode(darkModeSelect.value === 'dark');
+                
+                // Save custom logo URL
+                const newLogoUrl = logoUrlInput.value.trim();
+                if (newLogoUrl !== customLogoUrl) {
+                    customLogoUrl = newLogoUrl;
+                    localStorage.setItem('customLogoUrl', customLogoUrl);
+                    updateAppLogo();
+                }
+                
+                settingsModal.style.display = 'none';
+            }
+            
+            // Event Listeners
+            addTimerBtn.addEventListener('click', openAddTimerModal);
+            addTableBtn.addEventListener('click', openAddTableModal);
+            
+            settingsBtn.addEventListener('click', () => {
+                settingsModal.style.display = 'flex';
+            });
+            
+            closeSettingsModal.addEventListener('click', () => {
+                settingsModal.style.display = 'none';
+            });
+            
+            closeTimerModal.addEventListener('click', () => {
+                timerModal.style.display = 'none';
+            });
+            
+            closeTableModal.addEventListener('click', () => {
+                tableModal.style.display = 'none';
+            });
+            
+            closeEntryModal.addEventListener('click', () => {
+                entryModal.style.display = 'none';
+            });
+            
+            saveSettingsBtn.addEventListener('click', saveSettings);
+            
+            saveTimerBtn.addEventListener('click', saveTimer);
+            saveTableBtn.addEventListener('click', saveTable);
+            saveEntryBtn.addEventListener('click', saveEntry);
+            
+            deleteTimerBtn.addEventListener('click', () => {
+                if (currentEditTimerId) {
+                    deleteTimer(currentEditTimerId);
+                }
+            });
+            
+            deleteTableBtn.addEventListener('click', () => {
+                if (currentEditTableId) {
+                    deleteTable(currentEditTableId);
+                }
+            });
+            
+            // Add new entry button in table modal
+            document.addEventListener('click', (e) => {
+                if (e.target && e.target.id === 'addEntryBtn') {
+                    openEntryModal(null, null);
+                }
+            });
+            
+            // Close modals when clicking outside
+            window.addEventListener('click', (e) => {
+                if (e.target === settingsModal) {
+                    settingsModal.style.display = 'none';
+                }
+                if (e.target === timerModal) {
+                    timerModal.style.display = 'none';
+                }
+                if (e.target === tableModal) {
+                    tableModal.style.display = 'none';
+                }
+                if (e.target === entryModal) {
+                    entryModal.style.display = 'none';
+                }
+            });
             
             // Initialize the app
             init();
