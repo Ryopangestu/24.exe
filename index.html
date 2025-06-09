@@ -16,7 +16,7 @@
       --border-color: #e5e7eb;
       --success: #10b981;
       --error: #ef4444;
-      --inactive-tab: #e5e7eb;
+      --tab-inactive: #e5e7eb;
     }
     
     .dark-mode {
@@ -29,7 +29,7 @@
       --border-color: #374151;
       --success: #34d399;
       --error: #f87171;
-      --inactive-tab: #374151;
+      --tab-inactive: #374151;
     }
     
     * {
@@ -100,14 +100,17 @@
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s;
-      background-color: var(--inactive-tab);
-      color: var(--text-secondary);
+      border-bottom: 3px solid transparent;
     }
     
     .tab.active {
-      background-color: var(--bg-primary);
+      border-bottom: 3px solid var(--primary);
       color: var(--primary);
-      border-bottom: 2px solid var(--primary);
+    }
+    
+    .tab:not(.active) {
+      background-color: var(--tab-inactive);
+      opacity: 0.7;
     }
     
     .tab-content {
@@ -214,7 +217,7 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1 class="title">Crypto Calculator</h1>
+      <h1 class="title">Kalkulator Investasi</h1>
       <button class="theme-toggle" id="themeToggle">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="5"></circle>
@@ -233,9 +236,10 @@
     
     <div class="tabs">
       <div class="tab active" data-tab="marketcap">By Market Cap</div>
-      <div class="tab" data-tab="price">By Token Price</div>
+      <div class="tab" data-tab="price">By Harga</div>
     </div>
     
+    <!-- Market Cap Calculator -->
     <div class="tab-content active" id="marketcap-tab">
       <div class="input-group">
         <label for="initialInvestment" class="input-label">Modal Awal ($)</label>
@@ -252,7 +256,7 @@
         <input type="number" id="currentMarketCap" class="input-field" placeholder="Market cap saat ini">
       </div>
       
-      <button class="calculate-btn" onclick="calculateByMarketCap()">Hitung Nilai Sekarang</button>
+      <button class="calculate-btn" onclick="calculateMarketCap()">Hitung Nilai Sekarang</button>
       
       <div class="result-card">
         <div class="result-label">Nilai Investasi Sekarang</div>
@@ -260,41 +264,47 @@
       </div>
       
       <p class="disclaimer">
-        * Kalkulator ini hanya untuk tujuan edukasi.<br>
+        * Kalkulator ini menghitung berdasarkan perubahan market cap.<br>
         Investasi cryptocurrency memiliki risiko tinggi.
       </p>
     </div>
     
+    <!-- Price Calculator -->
     <div class="tab-content" id="price-tab">
       <div class="input-group">
-        <label for="initialInvestmentPrice" class="input-label">Modal Awal ($)</label>
-        <input type="number" id="initialInvestmentPrice" class="input-field" step="0.01" placeholder="Jumlah investasi awal">
+        <label for="initialAmount" class="input-label">Jumlah Koin</label>
+        <input type="number" id="initialAmount" class="input-field" step="0.00000001" placeholder="Jumlah koin yang dimiliki">
       </div>
       
       <div class="input-group">
-        <label for="buyPrice" class="input-label">Harga Beli per Token ($)</label>
-        <input type="number" id="buyPrice" class="input-field" step="0.00000001" placeholder="Harga saat pembelian">
+        <label for="buyPrice" class="input-label">Harga Beli ($)</label>
+        <input type="number" id="buyPrice" class="input-field" step="0.00000001" placeholder="Harga per koin saat beli">
       </div>
       
       <div class="input-group">
-        <label for="currentPrice" class="input-label">Harga Sekarang per Token ($)</label>
-        <input type="number" id="currentPrice" class="input-field" step="0.00000001" placeholder="Harga saat ini">
+        <label for="currentPrice" class="input-label">Harga Sekarang ($)</label>
+        <input type="number" id="currentPrice" class="input-field" step="0.00000001" placeholder="Harga per koin saat ini">
       </div>
       
-      <button class="calculate-btn" onclick="calculateByPrice()">Hitung Nilai Sekarang</button>
+      <button class="calculate-btn" onclick="calculatePrice()">Hitung Nilai Sekarang</button>
       
       <div class="result-card">
         <div class="result-label">Nilai Investasi Sekarang</div>
         <div class="result-value">$<span id="price-result">0.00</span></div>
       </div>
       
-      <div class="result-card" style="margin-top: 1rem;">
-        <div class="result-label">Jumlah Token yang Dimiliki</div>
-        <div class="result-value"><span id="token-amount">0</span></div>
+      <div class="result-card" style="margin-top: 1rem; border-left-color: var(--success);">
+        <div class="result-label">Profit/Loss</div>
+        <div class="result-value" id="profit-loss">$0.00</div>
+      </div>
+      
+      <div class="result-card" style="margin-top: 1rem; border-left-color: var(--text-secondary);">
+        <div class="result-label">Persentase Perubahan</div>
+        <div class="result-value" id="percentage-change">0%</div>
       </div>
       
       <p class="disclaimer">
-        * Kalkulator ini hanya untuk tujuan edukasi.<br>
+        * Kalkulator ini menghitung berdasarkan perubahan harga per koin.<br>
         Investasi cryptocurrency memiliki risiko tinggi.
       </p>
     </div>
@@ -305,19 +315,19 @@
     const tabs = document.querySelectorAll('.tab');
     tabs.forEach(tab => {
       tab.addEventListener('click', () => {
-        // Remove active class from all tabs and content
+        // Remove active class from all tabs and contents
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         
         // Add active class to clicked tab and corresponding content
         tab.classList.add('active');
-        const tabId = tab.getAttribute('data-tab') + '-tab';
-        document.getElementById(tabId).classList.add('active');
+        const tabId = tab.getAttribute('data-tab');
+        document.getElementById(`${tabId}-tab`).classList.add('active');
       });
     });
     
     // Market Cap Calculator
-    function calculateByMarketCap() {
+    function calculateMarketCap() {
       const investment = parseFloat(document.getElementById('initialInvestment').value);
       const marketCapInitial = parseFloat(document.getElementById('initialMarketCap').value);
       const marketCapCurrent = parseFloat(document.getElementById('currentMarketCap').value);
@@ -331,7 +341,8 @@
         });
         
         // Animation
-        animateResult('marketcap-result');
+        const resultElement = document.querySelector('#marketcap-tab .result-card');
+        animateResult(resultElement);
       } else {
         document.getElementById('marketcap-result').textContent = "0.00";
         alert("Harap isi semua kolom dengan nilai yang valid!");
@@ -339,40 +350,56 @@
     }
     
     // Price Calculator
-    function calculateByPrice() {
-      const investment = parseFloat(document.getElementById('initialInvestmentPrice').value);
+    function calculatePrice() {
+      const amount = parseFloat(document.getElementById('initialAmount').value);
       const buyPrice = parseFloat(document.getElementById('buyPrice').value);
       const currentPrice = parseFloat(document.getElementById('currentPrice').value);
 
-      if (investment && buyPrice && currentPrice) {
-        const tokenAmount = investment / buyPrice;
-        const newValue = tokenAmount * currentPrice;
+      if (amount && buyPrice && currentPrice) {
+        const initialValue = amount * buyPrice;
+        const currentValue = amount * currentPrice;
+        const profitLoss = currentValue - initialValue;
+        const percentageChange = ((currentPrice - buyPrice) / buyPrice) * 100;
         
-        document.getElementById('price-result').textContent = newValue.toLocaleString('en-US', {
+        // Display results
+        document.getElementById('price-result').textContent = currentValue.toLocaleString('en-US', {
           style: 'decimal',
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
         });
         
-        document.getElementById('token-amount').textContent = tokenAmount.toLocaleString('en-US', {
-          style: 'decimal',
-          maximumFractionDigits: 8
-        });
+        document.getElementById('profit-loss').textContent = 
+          `${profitLoss >= 0 ? '+' : ''}${profitLoss.toLocaleString('en-US', {
+            style: 'decimal',
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+          })}`;
+        
+        document.getElementById('profit-loss').style.color = 
+          profitLoss >= 0 ? 'var(--success)' : 'var(--error)';
+        
+        document.getElementById('percentage-change').textContent = 
+          `${percentageChange >= 0 ? '+' : ''}${percentageChange.toFixed(2)}%`;
+        
+        document.getElementById('percentage-change').style.color = 
+          percentageChange >= 0 ? 'var(--success)' : 'var(--error)';
         
         // Animation
-        animateResult('price-result');
+        const resultElements = document.querySelectorAll('#price-tab .result-card');
+        resultElements.forEach(el => animateResult(el));
       } else {
         document.getElementById('price-result').textContent = "0.00";
-        document.getElementById('token-amount').textContent = "0";
+        document.getElementById('profit-loss').textContent = "$0.00";
+        document.getElementById('percentage-change').textContent = "0%";
         alert("Harap isi semua kolom dengan nilai yang valid!");
       }
     }
     
-    function animateResult(resultId) {
-      const resultElement = document.querySelector(`#${resultId}`).parentElement.parentElement;
-      resultElement.style.transform = 'translateY(-5px)';
+    // Animation helper function
+    function animateResult(element) {
+      element.style.transform = 'translateY(-5px)';
       setTimeout(() => {
-        resultElement.style.transform = 'translateY(0)';
+        element.style.transform = 'translateY(0)';
       }, 200);
     }
     
