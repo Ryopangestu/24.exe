@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kalkulator Market Cap Meme Coin</title>
+  <title>Kalkulator Investasi Crypto</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -16,6 +16,7 @@
       --border-color: #e5e7eb;
       --success: #10b981;
       --error: #ef4444;
+      --inactive-tab: #e5e7eb;
     }
     
     .dark-mode {
@@ -28,6 +29,7 @@
       --border-color: #374151;
       --success: #34d399;
       --error: #f87171;
+      --inactive-tab: #374151;
     }
     
     * {
@@ -86,8 +88,35 @@
       color: var(--text-primary);
     }
     
-    .content {
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .tab {
+      flex: 1;
+      padding: 1rem;
+      text-align: center;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      background-color: var(--inactive-tab);
+      color: var(--text-secondary);
+    }
+    
+    .tab.active {
+      background-color: var(--bg-primary);
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
+    }
+    
+    .tab-content {
+      display: none;
       padding: 1.5rem;
+    }
+    
+    .tab-content.active {
+      display: block;
     }
     
     .input-group {
@@ -185,7 +214,7 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1 class="title">Market Cap Calculator</h1>
+      <h1 class="title">Crypto Calculator</h1>
       <button class="theme-toggle" id="themeToggle">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="5"></circle>
@@ -202,7 +231,12 @@
       </button>
     </div>
     
-    <div class="content">
+    <div class="tabs">
+      <div class="tab active" data-tab="marketcap">By Market Cap</div>
+      <div class="tab" data-tab="price">By Token Price</div>
+    </div>
+    
+    <div class="tab-content active" id="marketcap-tab">
       <div class="input-group">
         <label for="initialInvestment" class="input-label">Modal Awal ($)</label>
         <input type="number" id="initialInvestment" class="input-field" step="0.01" placeholder="Jumlah investasi awal">
@@ -218,11 +252,45 @@
         <input type="number" id="currentMarketCap" class="input-field" placeholder="Market cap saat ini">
       </div>
       
-      <button class="calculate-btn" onclick="calculate()">Hitung Nilai Sekarang</button>
+      <button class="calculate-btn" onclick="calculateByMarketCap()">Hitung Nilai Sekarang</button>
       
       <div class="result-card">
         <div class="result-label">Nilai Investasi Sekarang</div>
-        <div class="result-value">$<span id="result">0.00</span></div>
+        <div class="result-value">$<span id="marketcap-result">0.00</span></div>
+      </div>
+      
+      <p class="disclaimer">
+        * Kalkulator ini hanya untuk tujuan edukasi.<br>
+        Investasi cryptocurrency memiliki risiko tinggi.
+      </p>
+    </div>
+    
+    <div class="tab-content" id="price-tab">
+      <div class="input-group">
+        <label for="initialInvestmentPrice" class="input-label">Modal Awal ($)</label>
+        <input type="number" id="initialInvestmentPrice" class="input-field" step="0.01" placeholder="Jumlah investasi awal">
+      </div>
+      
+      <div class="input-group">
+        <label for="buyPrice" class="input-label">Harga Beli per Token ($)</label>
+        <input type="number" id="buyPrice" class="input-field" step="0.00000001" placeholder="Harga saat pembelian">
+      </div>
+      
+      <div class="input-group">
+        <label for="currentPrice" class="input-label">Harga Sekarang per Token ($)</label>
+        <input type="number" id="currentPrice" class="input-field" step="0.00000001" placeholder="Harga saat ini">
+      </div>
+      
+      <button class="calculate-btn" onclick="calculateByPrice()">Hitung Nilai Sekarang</button>
+      
+      <div class="result-card">
+        <div class="result-label">Nilai Investasi Sekarang</div>
+        <div class="result-value">$<span id="price-result">0.00</span></div>
+      </div>
+      
+      <div class="result-card" style="margin-top: 1rem;">
+        <div class="result-label">Jumlah Token yang Dimiliki</div>
+        <div class="result-value"><span id="token-amount">0</span></div>
       </div>
       
       <p class="disclaimer">
@@ -233,29 +301,79 @@
   </div>
 
   <script>
-    function calculate() {
+    // Tab functionality
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        // Remove active class from all tabs and content
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        // Add active class to clicked tab and corresponding content
+        tab.classList.add('active');
+        const tabId = tab.getAttribute('data-tab') + '-tab';
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+    
+    // Market Cap Calculator
+    function calculateByMarketCap() {
       const investment = parseFloat(document.getElementById('initialInvestment').value);
       const marketCapInitial = parseFloat(document.getElementById('initialMarketCap').value);
       const marketCapCurrent = parseFloat(document.getElementById('currentMarketCap').value);
 
       if (investment && marketCapInitial && marketCapCurrent) {
         const newValue = investment * (marketCapCurrent / marketCapInitial);
-        document.getElementById('result').textContent = newValue.toLocaleString('en-US', {
+        document.getElementById('marketcap-result').textContent = newValue.toLocaleString('en-US', {
           style: 'decimal',
           minimumFractionDigits: 2,
           maximumFractionDigits: 2
         });
         
-        // Animasi hasil
-        const resultElement = document.querySelector('.result-card');
-        resultElement.style.transform = 'translateY(-5px)';
-        setTimeout(() => {
-          resultElement.style.transform = 'translateY(0)';
-        }, 200);
+        // Animation
+        animateResult('marketcap-result');
       } else {
-        document.getElementById('result').textContent = "0.00";
+        document.getElementById('marketcap-result').textContent = "0.00";
         alert("Harap isi semua kolom dengan nilai yang valid!");
       }
+    }
+    
+    // Price Calculator
+    function calculateByPrice() {
+      const investment = parseFloat(document.getElementById('initialInvestmentPrice').value);
+      const buyPrice = parseFloat(document.getElementById('buyPrice').value);
+      const currentPrice = parseFloat(document.getElementById('currentPrice').value);
+
+      if (investment && buyPrice && currentPrice) {
+        const tokenAmount = investment / buyPrice;
+        const newValue = tokenAmount * currentPrice;
+        
+        document.getElementById('price-result').textContent = newValue.toLocaleString('en-US', {
+          style: 'decimal',
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        });
+        
+        document.getElementById('token-amount').textContent = tokenAmount.toLocaleString('en-US', {
+          style: 'decimal',
+          maximumFractionDigits: 8
+        });
+        
+        // Animation
+        animateResult('price-result');
+      } else {
+        document.getElementById('price-result').textContent = "0.00";
+        document.getElementById('token-amount').textContent = "0";
+        alert("Harap isi semua kolom dengan nilai yang valid!");
+      }
+    }
+    
+    function animateResult(resultId) {
+      const resultElement = document.querySelector(`#${resultId}`).parentElement.parentElement;
+      resultElement.style.transform = 'translateY(-5px)';
+      setTimeout(() => {
+        resultElement.style.transform = 'translateY(0)';
+      }, 200);
     }
     
     // Dark mode toggle
